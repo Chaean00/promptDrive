@@ -1,13 +1,15 @@
 package com.chaean.promptdrive;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.modulith.core.ApplicationModules;
 
-@SpringBootTest
 class PromptDriveApplicationTests {
 
+	private final ApplicationModules modules = ApplicationModules.of(PromptDriveApplication.class);
+
 	@Test
-	void contextLoads() {
+	void verifiesModulithBoundaries() {
+		modules.verify();
 	}
 
 }
