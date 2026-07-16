@@ -1,5 +1,11 @@
 spring:
   application:
     name: promptDrive
+  config:
+    import: optional:file:./.env[.properties]
   profiles:
     default: local
+
+logging:
+  pattern:
+    level: "[traceId=%X{traceId:-}] %5p"

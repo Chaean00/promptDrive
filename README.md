@@ -1,5 +1,17 @@
 # AI 프롬프트 저장소
 
+## 로컬 실행
+
+`.env.example`을 복사해 로컬 시크릿을 설정한 뒤 MySQL과 Redis를 실행한다. 애플리케이션도 동일한 `.env` 파일을 설정으로 불러와 Compose와 같은 자격 증명을 사용한다.
+
+```bash
+cp .env.example .env
+docker compose -f docker-compose.local.yml up -d
+./gradlew bootRun
+```
+
+MySQL 볼륨을 생성한 뒤 `.env`의 `MYSQL_PASSWORD`를 바꿨다면 컨테이너 환경 변수만 바뀌고 기존 MySQL 계정 비밀번호는 바뀌지 않는다. 기존 비밀번호를 `.env`에 유지하거나, 로컬 데이터 삭제가 가능할 때만 Compose 볼륨을 재생성한다.
+
 ## 개발 워크플로우
 
 개인 프로젝트이지만 작업 목적, 변경 범위, 검증 결과를 GitHub Issue와 Pull Request에 남긴다.
