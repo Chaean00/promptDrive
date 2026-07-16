@@ -69,14 +69,14 @@ public class GlobalExceptionHandler {
 	private ResponseEntity<ApiErrorResponse> validationError(
 			List<org.springframework.validation.FieldError> fieldErrors, HttpServletRequest request) {
 		List<FieldErrorResponse> errors = fieldErrors.stream()
-			.map(fieldError -> new FieldErrorResponse(fieldError.getField(), fieldError.getDefaultMessage()))
+			.map(fieldError -> FieldErrorResponse.of(fieldError.getField(), fieldError.getDefaultMessage()))
 			.toList();
 		return error(CommonErrorCode.VALIDATION_ERROR, request, errors);
 	}
 
 	private ResponseEntity<ApiErrorResponse> error(ErrorCode errorCode, HttpServletRequest request,
 			List<FieldErrorResponse> fieldErrors) {
-		ApiErrorResponse response = new ApiErrorResponse(
+		ApiErrorResponse response = ApiErrorResponse.of(
 			errorCode.getStatus().value(),
 			errorCode.getCode(),
 			errorCode.getMessage(),

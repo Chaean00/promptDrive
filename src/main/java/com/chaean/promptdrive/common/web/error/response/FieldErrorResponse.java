@@ -1,10 +1,19 @@
 package com.chaean.promptdrive.common.web.error.response;
 
-import lombok.Value;
+import lombok.Getter;
 
-@Value
+@Getter
 public class FieldErrorResponse {
 
-	String field;
-	String message;
+	private final String field;
+	private final String message;
+
+	private FieldErrorResponse(String field, String message) {
+		this.field = field;
+		this.message = message;
+	}
+
+	public static FieldErrorResponse of(String field, String message) {
+		return new FieldErrorResponse(field, message);
+	}
 }
