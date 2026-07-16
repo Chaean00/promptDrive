@@ -1,5 +1,5 @@
 ---
-name: 작업
+name: Task_Template
 about: 기능, 수정, 리팩터링, 인프라 또는 문서 작업을 정의합니다.
 title: "[type] "
 labels: ""
