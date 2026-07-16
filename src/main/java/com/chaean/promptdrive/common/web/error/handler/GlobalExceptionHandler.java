@@ -7,6 +7,7 @@ import com.chaean.promptdrive.common.web.error.ErrorCode;
 import com.chaean.promptdrive.common.web.error.exception.BusinessException;
 import com.chaean.promptdrive.common.web.error.response.ApiErrorResponse;
 import com.chaean.promptdrive.common.web.error.response.FieldErrorResponse;
+import com.chaean.promptdrive.common.web.trace.TraceIdContext;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -81,6 +82,7 @@ public class GlobalExceptionHandler {
 			errorCode.getCode(),
 			errorCode.getMessage(),
 			request.getRequestURI(),
+			TraceIdContext.getTraceId(request),
 			fieldErrors
 		);
 		return ResponseEntity.status(errorCode.getStatus()).body(response);
