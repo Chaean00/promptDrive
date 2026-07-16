@@ -32,7 +32,7 @@
 - 현재 상태가 반드시 필요한 동기 검증·조회에만 공개 Facade를 사용한다. 모듈 간 REST 호출은 하지 않는다.
 - 공개 Facade는 `<module>/api/facade`에 인터페이스와 DTO를 둔다. 구현체는 `<module>/internal/application`에 두며, `api` 패키지는 `@NamedInterface("api")`로 명시한다.
 - 외부 시스템(OpenAI, Redis, Google OAuth2)처럼 교체·실패 격리가 필요한 경계에만 Port/Adapter를 만든다. 모듈 내부 CRUD나 Spring Data Repository에 불필요한 인터페이스 계층을 만들지 않는다.
-- `shared`에는 기술 공통 요소만 둔다. 도메인 Entity, 도메인 Service, 비즈니스 규칙을 넣지 않는다.
+- `common`에는 기술 공통 요소만 둔다. 도메인 Entity, 도메인 Service, 비즈니스 규칙을 넣지 않는다.
 
 ## Git 작업 규칙
 
