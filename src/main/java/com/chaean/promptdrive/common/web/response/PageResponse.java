@@ -2,11 +2,14 @@ package com.chaean.promptdrive.common.web.response;
 
 import java.util.List;
 
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import org.springframework.data.domain.Page;
 
 @Getter
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class PageResponse<T> {
 
 	private final List<T> content;
@@ -17,17 +20,16 @@ public class PageResponse<T> {
 	private final boolean first;
 	private final boolean last;
 
-	private PageResponse(Page<T> source) {
-		this.content = List.copyOf(source.getContent());
-		this.page = source.getNumber();
-		this.size = source.getSize();
-		this.totalElements = source.getTotalElements();
-		this.totalPages = source.getTotalPages();
-		this.first = source.isFirst();
-		this.last = source.isLast();
-	}
-
-	public static <T> PageResponse<T> from(Page<T> source) {
-		return new PageResponse<>(source);
+	public static <T> PageResponse<T>
+	from(Page<T> source) {
+		return new PageResponse<>(
+			List.copyOf(source.getContent()),
+			source.getNumber(),
+			source.getSize(),
+			source.getTotalElements(),
+			source.getTotalPages(),
+			source.isFirst(),
+			source.isLast()
+		);
 	}
 }
