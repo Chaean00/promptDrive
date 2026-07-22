@@ -44,6 +44,8 @@
 - 커밋 첫 줄은 `<type>(#{issue-number}): <작업 목적>` 형식을 사용한다.
 - 커밋 본문에는 선택 이유와 검증 결과를 기록하고, Lore Commit Protocol의 trailer 규칙을 함께 따른다.
 - Pull Request 본문에는 `Closes #<issue-number>`를 사용해 관련 Issue를 연결한다.
+- 에이전트는 코드·문서 구현, 테스트, 검증, diff 보고까지만 수행하고 `git add`, `git commit`, `git commit --amend`, `git merge`, `git rebase`, `git cherry-pick`, `git push`, 태그 생성 등 커밋 또는 원격 저장소 이력을 변경하는 작업을 실행하지 않는다. 커밋과 push는 사용자가 직접 수행한다.
+- Team, Ultragoal 등 자동화 워크플로우에서도 auto-checkpoint, 자동 커밋, 자동 merge commit을 만들지 않는다. 워크플로우가 커밋을 필수로 요구하면 커밋 직전의 검증된 working tree와 권장 커밋 메시지만 사용자에게 전달하고 중단한다.
 
 ## 1. 코딩 전에 생각하기
 
