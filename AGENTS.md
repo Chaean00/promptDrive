@@ -10,8 +10,11 @@
 - 모듈 간 결합도를 최소화한다. 다른 모듈의 내부 타입·테이블·Repository·Service에 의존하지 않고, 필요한 경우에만 공개 이벤트 또는 최소 범위의 Facade 계약을 사용한다.
 - 필요한 경우에만 구조를 확장한다. 예를 들어 Kafka·RabbitMQ는 실제 외부 서비스 분리 또는 처리량·운영 요구가 생긴 뒤 도입하며, 현재는 Spring Modulith Registry를 사용한다.
 - Java `record`와 Lombok `@Value`를 사용하지 않는다. DTO와 이벤트 payload는 필요한 Lombok 어노테이션을 적극 사용해 보일러플레이트를 줄인다. 생성자 로직이 없는 불변 DTO는 `private final` 필드, `@Getter`, `@AllArgsConstructor(access = AccessLevel.PRIVATE)`, 정적 팩토리 메서드를 사용한다. 방어 복사·입력 검증 등 생성자 로직이 필요한 경우에만 명시적 생성자를 작성한다. JPA Entity는 용도에 맞는 Lombok 어노테이션으로 작성한다.
+- Enum은 영문 상수명과 `code`, `englishName`, `koreanName`을 함께 제공한다. HTTP 응답에서 Enum을 표시할 때는 raw 상수명만 반환하지 않고 응답 DTO에서 이 세 값을 명시적으로 매핑한다.
 - `private` 생성자로 이미 상속이 불가능한 DTO에는 중복으로 `final class`를 붙이지 않는다. 외부에서 상속 가능한 생성자를 제공하고 상속이 불변식이나 계약을 훼손할 때만 `final class`를 사용한다.
-- 테스트는 단위 테스트와 통합 테스트만 작성한다. 단순 DTO, Lombok 생성 코드, 정적 팩토리 같은 구현 세부사항은 별도로 테스트하지 않고, 도메인·비즈니스 규칙과 클라이언트에 영향을 주는 HTTP·이벤트 같은 외부 경계 계약을 검증한다.
+- 애플리케이션이 소유하는 모든 테이블에는 `created_at`, `updated_at`, nullable timestamp `deleted_at`을 둔다. 일반 Hibernate/JPA 조회는 `deleted_at IS NULL`인 행만 반환한다. Spring Modulith 프레임워크의 `event_publication` 테이블은 이 규칙의 예외다.
+- 데이터베이스에는 관계 ID 열만 저장하고 물리적 foreign key 제약은 만들지 않는다. 관계 ID에는 기본적으로 조회 인덱스를 추가하되, 같은 선행 열을 가진 unique/복합 인덱스가 이미 해당 조회를 지원하면 중복 인덱스를 만들지 않는다. 같은 모듈에서는 자식→부모 `@ManyToOne`만 먼저 모델링하며 실제 사용 사례가 있을 때만 `@OneToMany`를 추가한다. 모듈 간 member ID는 스칼라 값이며 `@ManyToOne`으로 매핑하지 않는다.
+- 테스트는 단위 테스트와 통합 테스트만 작성한다. 단순 DTO, Lombok 생성 코드, 정적 팩토리, 마이그레이션의 열·인덱스 존재 같은 구현 세부사항은 별도로 테스트하지 않고, 도메인·비즈니스 규칙과 클라이언트에 영향을 주는 HTTP·이벤트 같은 외부 경계 계약을 검증한다.
 - API 키·비밀번호 등 시크릿은 환경 변수로만 주입한다. `application-local.yaml`과 `application-prod.yaml`에는 시크릿 값을 하드코딩하지 않는다.
 - Builder, Factory Method/Factory, Strategy, Adapter, Facade를 포함해 Command, Template Method, Decorator, Chain of Responsibility, Observer 등 실무에서 널리 쓰이는 디자인 패턴은 책임 분리·변경 격리·객체 생성 복잡도 해소에 실제로 도움이 될 때 사용한다. 패턴 자체를 목적으로 추가하지 않으며, 적용 이유와 대안을 코드 또는 리뷰에서 설명할 수 있어야 한다.
 
