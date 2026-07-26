@@ -61,26 +61,24 @@ public class KakaoOAuthProviderClient implements OAuthProviderClient {
 		form.add("grant_type", "authorization_code");
 		form.add("code_verifier", pkceVerifier);
 		OAuthTokenResponse token = restClient.post().uri(provider.getTokenUri()).contentType(MediaType.APPLICATION_FORM_URLENCODED)
-				.body(form).retrieve().onStatus(status -> status.isError(), (request, response) -> { throw providerFailure(); })
+				.body(form).retrieve().onStatus(status -> status.isError(),
+						(request, response) -> { throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR); })
 				.body(OAuthTokenResponse.class);
 		if (token == null || token.getAccessToken() == null) {
-			throw providerFailure();
+			throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR);
 		}
 		KakaoUserInfoResponse userInfo = restClient.get().uri(provider.getUserInfoUri())
 				.headers(headers -> headers.setBearerAuth(token.getAccessToken())).retrieve()
-				.onStatus(status -> status.isError(), (request, response) -> { throw providerFailure(); })
+				.onStatus(status -> status.isError(),
+						(request, response) -> { throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR); })
 				.body(KakaoUserInfoResponse.class);
 		if (userInfo == null || userInfo.getId() == null || userInfo.getId().isBlank()) {
-			throw providerFailure();
+			throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR);
 		}
 		KakaoAccountResponse account = userInfo.getKakaoAccount();
 		String nickname = account == null || account.getProfile() == null ? null : account.getProfile().getNickname();
 		String email = account != null && account.isEmailValid() && account.isEmailVerified()
 				? account.getEmail() : null;
 		return SocialIdentityProfileResponse.of(SocialProvider.KAKAO, userInfo.getId(), nickname, email);
-	}
-
-	private BusinessException providerFailure() {
-		return new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR);
 	}
 }

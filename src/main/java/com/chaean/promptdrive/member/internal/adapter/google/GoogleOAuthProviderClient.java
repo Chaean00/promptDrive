@@ -75,18 +75,19 @@ public class GoogleOAuthProviderClient implements OAuthProviderClient {
 
 		OAuthTokenResponse token = requestToken(provider.getTokenUri(), form);
 		if (token == null || token.getAccessToken() == null || token.getIdToken() == null) {
-			throw providerFailure();
+			throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR);
 		}
 
 		Jwt validatedIdToken = validateIdToken(token.getIdToken(), provider.getClientId(), nonceHash);
 		GoogleUserInfoResponse userInfo = restClient.get().uri(provider.getUserInfoUri())
 				.headers(headers -> headers.setBearerAuth(token.getAccessToken()))
-				.retrieve().onStatus(status -> status.isError(), (request, response) -> { throw providerFailure(); })
+				.retrieve().onStatus(status -> status.isError(),
+						(request, response) -> { throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR); })
 				.body(GoogleUserInfoResponse.class);
 
 		if (userInfo == null || userInfo.getSub() == null || userInfo.getSub().isBlank()
 				|| !userInfo.getSub().equals(validatedIdToken.getSubject())) {
-			throw providerFailure();
+			throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR);
 		}
 
 		return SocialIdentityProfileResponse.of(SocialProvider.GOOGLE, userInfo.getSub(), userInfo.getName(),
@@ -97,23 +98,20 @@ public class GoogleOAuthProviderClient implements OAuthProviderClient {
 		try {
 			Jwt jwt = idTokenDecoderProvider.getObject().decode(idToken);
 			if (!jwt.getAudience().contains(clientId) || !nonceHash.equals(valueGenerator.sha256(jwt.getClaimAsString("nonce")))) {
-				throw providerFailure();
+				throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR);
 			}
 			return jwt;
 		} catch (BusinessException exception) {
 			throw exception;
 		} catch (RuntimeException exception) {
-			throw providerFailure();
+			throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR);
 		}
 	}
 
 	private OAuthTokenResponse requestToken(String tokenUri, MultiValueMap<String, String> form) {
 		return restClient.post().uri(tokenUri).contentType(MediaType.APPLICATION_FORM_URLENCODED).body(form)
-				.retrieve().onStatus(status -> status.isError(), (request, response) -> { throw providerFailure(); })
+				.retrieve().onStatus(status -> status.isError(),
+						(request, response) -> { throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR); })
 				.body(OAuthTokenResponse.class);
-	}
-
-	private BusinessException providerFailure() {
-		return new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR);
 	}
 }
