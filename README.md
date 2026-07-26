@@ -2,7 +2,7 @@
 
 ## 로컬 실행
 
-`.env.example`을 복사해 로컬 시크릿을 설정한 뒤 MySQL과 Redis를 실행한다. 애플리케이션도 동일한 `.env` 파일을 설정으로 불러와 Compose와 같은 자격 증명을 사용한다.
+`.env.example`을 복사해 로컬 시크릿을 설정한 뒤 MySQL을 실행한다. 애플리케이션도 동일한 `.env` 파일을 설정으로 불러와 Compose와 같은 자격 증명을 사용한다.
 
 ```bash
 cp .env.example .env
@@ -61,7 +61,7 @@ docs/#4-document-module-architecture
 feat(#12): 프롬프트 생성 API 추가
 fix(#27): 비공개 프롬프트 접근 권한 수정
 refactor(#31): 프롬프트 생성 유스케이스 분리
-infra(#8): 로컬 MySQL과 Redis Compose 추가
+infra(#8): 로컬 MySQL Compose 추가
 docs(#4): 모듈 아키텍처 가이드 작성
 ```
 
