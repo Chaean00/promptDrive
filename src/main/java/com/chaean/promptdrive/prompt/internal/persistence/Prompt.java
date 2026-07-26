@@ -20,9 +20,14 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.Objects;
+
 @Getter
 @Entity
-@Table(name = "prompt", indexes = @Index(name = "idx_prompt_owner_member_id", columnList = "owner_member_id"))
+@Table(name = "prompt", indexes = {
+		@Index(name = "idx_prompt_owner_member_id", columnList = "owner_member_id"),
+		@Index(name = "idx_prompt_public_browse", columnList = "visibility, deleted_at, created_at, id")
+})
 @SQLRestriction("deleted_at IS NULL")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Prompt extends BaseEntity {
@@ -63,12 +68,44 @@ public class Prompt extends BaseEntity {
 			String sourceName,
 			String sourceUrl
 	) {
-		this.title = title;
-		this.content = content;
-		this.provenance = provenance;
-		this.visibility = visibility;
+		this.title = Objects.requireNonNull(title);
+		this.content = Objects.requireNonNull(content);
+		this.provenance = Objects.requireNonNull(provenance);
+		this.visibility = Objects.requireNonNull(visibility);
+		if (provenance == PromptProvenance.CURATED && ownerMemberId != null) {
+			throw new IllegalArgumentException("Curated prompts cannot have an owner");
+		}
 		this.ownerMemberId = ownerMemberId;
 		this.sourceName = sourceName;
 		this.sourceUrl = sourceUrl;
+	}
+
+	public static Prompt createCurated(String title, String content, PromptVisibility visibility,
+			String sourceName, String sourceUrl) {
+		return new Prompt(title, content, PromptProvenance.CURATED, visibility, null, sourceName, sourceUrl);
+	}
+
+	public void updateCurated(String title, String content, String sourceName, String sourceUrl) {
+		assertCurated();
+		this.title = Objects.requireNonNull(title);
+		this.content = Objects.requireNonNull(content);
+		this.sourceName = sourceName;
+		this.sourceUrl = sourceUrl;
+	}
+
+	public void changeVisibility(PromptVisibility visibility) {
+		assertCurated();
+		this.visibility = Objects.requireNonNull(visibility);
+	}
+
+	public void deleteCurated() {
+		assertCurated();
+		delete();
+	}
+
+	private void assertCurated() {
+		if (provenance != PromptProvenance.CURATED || ownerMemberId != null) {
+			throw new IllegalStateException("Only ownerless curated prompts can be managed");
+		}
 	}
 }

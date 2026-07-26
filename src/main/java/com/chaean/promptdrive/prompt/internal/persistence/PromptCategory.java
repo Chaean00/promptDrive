@@ -24,6 +24,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.Objects;
+
 @Getter
 @Entity
 @Table(name = "prompt_category", indexes = @Index(
@@ -47,7 +49,11 @@ public class PromptCategory extends BaseEntity {
 	private PromptCategoryType category;
 
 	public PromptCategory(Prompt prompt, PromptCategoryType category) {
-		this.prompt = prompt;
-		this.category = category;
+		this.prompt = Objects.requireNonNull(prompt);
+		this.category = Objects.requireNonNull(category);
+	}
+
+	public static PromptCategory create(Prompt prompt, PromptCategoryType category) {
+		return new PromptCategory(prompt, category);
 	}
 }
