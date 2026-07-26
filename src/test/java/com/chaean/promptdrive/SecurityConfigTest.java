@@ -18,6 +18,8 @@ import org.springframework.security.oauth2.jwt.JwtValidationException;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 
 import com.chaean.promptdrive.common.config.SecurityConfig;
+import com.chaean.promptdrive.common.config.JwtProperties;
+import com.chaean.promptdrive.common.config.JwtSigningKeyFactory;
 
 class SecurityConfigTest {
 
@@ -50,13 +52,13 @@ class SecurityConfigTest {
 	void acceptsOnlySignedAccessTokensForConfiguredIssuerAndAudience() {
 		SecurityConfig securityConfig = new SecurityConfig();
 		Instant now = Instant.now();
-		String token = securityConfig.jwtEncoder(SIGNING_KEY).encode(JwtEncoderParameters.from(
+		String token = securityConfig.jwtEncoder(new JwtSigningKeyFactory(), jwtProperties()).encode(JwtEncoderParameters.from(
 				JwsHeader.with(MacAlgorithm.HS256).type("JWT").build(),
 				JwtClaimsSet.builder().issuer("promptdrive").audience(List.of("promptdrive-api"))
 						.subject("1").issuedAt(now).expiresAt(now.plus(1, ChronoUnit.MINUTES))
 						.claim("member_id", "1").claim("token_type", "access").build())).getTokenValue();
 
-		Jwt decoded = securityConfig.jwtDecoder(SIGNING_KEY, "promptdrive", "promptdrive-api").decode(token);
+		Jwt decoded = securityConfig.jwtDecoder(new JwtSigningKeyFactory(), jwtProperties()).decode(token);
 
 		assertThat(decoded.getClaimAsString("member_id")).isEqualTo("1");
 	}
@@ -65,13 +67,21 @@ class SecurityConfigTest {
 	void rejectsRefreshTokensAtTheBearerJwtBoundary() {
 		SecurityConfig securityConfig = new SecurityConfig();
 		Instant now = Instant.now();
-		String token = securityConfig.jwtEncoder(SIGNING_KEY).encode(JwtEncoderParameters.from(
+		String token = securityConfig.jwtEncoder(new JwtSigningKeyFactory(), jwtProperties()).encode(JwtEncoderParameters.from(
 				JwsHeader.with(MacAlgorithm.HS256).type("JWT").build(),
 				JwtClaimsSet.builder().issuer("promptdrive").audience(List.of("promptdrive-api"))
 						.subject("1").issuedAt(now).expiresAt(now.plus(1, ChronoUnit.MINUTES))
 						.claim("member_id", "1").claim("token_type", "refresh").build())).getTokenValue();
 
-		assertThatThrownBy(() -> securityConfig.jwtDecoder(SIGNING_KEY, "promptdrive", "promptdrive-api").decode(token))
+		assertThatThrownBy(() -> securityConfig.jwtDecoder(new JwtSigningKeyFactory(), jwtProperties()).decode(token))
 				.isInstanceOf(JwtValidationException.class);
+	}
+
+	private JwtProperties jwtProperties() {
+		JwtProperties properties = new JwtProperties();
+		properties.setSigningKey(SIGNING_KEY);
+		properties.setIssuer("promptdrive");
+		properties.setAudience("promptdrive-api");
+		return properties;
 	}
 }

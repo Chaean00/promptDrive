@@ -7,8 +7,8 @@ import java.time.Instant;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.web.server.ResponseStatusException;
-
+import com.chaean.promptdrive.common.web.error.exception.BusinessException;
+import com.chaean.promptdrive.common.web.error.CommonErrorCode;
 import com.chaean.promptdrive.member.internal.domain.SocialProvider;
 import com.chaean.promptdrive.member.internal.persistence.OAuthLoginAttempt;
 import com.chaean.promptdrive.member.internal.persistence.OAuthLoginAttemptRepository;
@@ -28,6 +28,8 @@ class OAuthLoginAttemptServiceTest {
 		service.consume(SocialProvider.GOOGLE, "state-hash");
 
 		assertThatThrownBy(() -> service.consume(SocialProvider.GOOGLE, "state-hash"))
-				.isInstanceOf(ResponseStatusException.class);
+				.isInstanceOf(BusinessException.class)
+				.extracting(exception -> ((BusinessException) exception).getErrorCode())
+				.isEqualTo(CommonErrorCode.UNAUTHORIZED_REQUEST);
 	}
 }

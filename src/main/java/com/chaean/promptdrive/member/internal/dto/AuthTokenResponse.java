@@ -1,4 +1,4 @@
-package com.chaean.promptdrive.member.internal.web;
+package com.chaean.promptdrive.member.internal.dto;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;

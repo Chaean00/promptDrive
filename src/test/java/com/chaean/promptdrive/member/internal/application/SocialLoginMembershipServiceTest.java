@@ -10,6 +10,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 import com.chaean.promptdrive.member.internal.domain.SocialProvider;
+import com.chaean.promptdrive.member.internal.dto.SocialIdentityProfileResponse;
 import com.chaean.promptdrive.member.internal.persistence.Member;
 import com.chaean.promptdrive.member.internal.persistence.MemberRepository;
 import com.chaean.promptdrive.member.internal.persistence.SocialIdentity;
@@ -25,8 +26,8 @@ class SocialLoginMembershipServiceTest {
 		given(memberRepository.save(any(Member.class))).willAnswer(invocation -> invocation.getArgument(0));
 		SocialLoginMembershipService service = new SocialLoginMembershipService(memberRepository, identityRepository);
 
-		Member googleMember = service.findOrCreate(SocialIdentityProfile.of(SocialProvider.GOOGLE, "google-1", "Google", "same@example.com"));
-		Member kakaoMember = service.findOrCreate(SocialIdentityProfile.of(SocialProvider.KAKAO, "kakao-1", "Kakao", "same@example.com"));
+		Member googleMember = service.findOrCreate(SocialIdentityProfileResponse.of(SocialProvider.GOOGLE, "google-1", "Google", "same@example.com"));
+		Member kakaoMember = service.findOrCreate(SocialIdentityProfileResponse.of(SocialProvider.KAKAO, "kakao-1", "Kakao", "same@example.com"));
 
 		assertThat(googleMember).isNotSameAs(kakaoMember);
 	}

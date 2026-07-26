@@ -1,6 +1,8 @@
 package com.chaean.promptdrive.member.internal.domain;
 
 import java.util.Locale;
+import java.util.Arrays;
+import java.util.Optional;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +18,14 @@ public enum SocialProvider {
 	private final String englishName;
 	private final String koreanName;
 
-	public static SocialProvider from(String value) {
-		return SocialProvider.valueOf(value.toUpperCase(Locale.ROOT));
+	public static Optional<SocialProvider> from(String value) {
+		if (value == null) {
+			return Optional.empty();
+		}
+
+		return Arrays.stream(values())
+				.filter(provider -> provider.name().equalsIgnoreCase(value)
+						|| provider.code.equals(value.toLowerCase(Locale.ROOT)))
+				.findFirst();
 	}
 }

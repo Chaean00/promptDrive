@@ -19,10 +19,12 @@ member:
     state-encryption-key: ${OAUTH_STATE_ENCRYPTION_KEY:}
     allowed-return-paths: ${OAUTH_ALLOWED_RETURN_PATHS:/}
     allowed-origins: ${OAUTH_ALLOWED_ORIGINS:}
-    jwt:
-      signing-key: ${JWT_SIGNING_KEY:}
-      issuer: ${JWT_ISSUER:promptdrive}
-      audience: ${JWT_AUDIENCE:promptdrive-api}
+
+security:
+  jwt:
+    signing-key: ${JWT_SIGNING_KEY:}
+    issuer: ${JWT_ISSUER:promptdrive}
+    audience: ${JWT_AUDIENCE:promptdrive-api}
 
 logging:
   pattern:

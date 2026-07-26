@@ -1,6 +1,6 @@
 package com.chaean.promptdrive.member.internal.adapter.oauth;
 
-import com.chaean.promptdrive.member.internal.application.SocialIdentityProfile;
+import com.chaean.promptdrive.member.internal.dto.SocialIdentityProfileResponse;
 import com.chaean.promptdrive.member.internal.domain.SocialProvider;
 
 public interface OAuthProviderClient {
@@ -9,5 +9,5 @@ public interface OAuthProviderClient {
 
 	String authorizationUri(String state, String codeChallenge, String nonce);
 
-	SocialIdentityProfile authenticate(String authorizationCode, String pkceVerifier, String nonce);
+	SocialIdentityProfileResponse authenticate(String authorizationCode, String pkceVerifier, String nonce);
 }

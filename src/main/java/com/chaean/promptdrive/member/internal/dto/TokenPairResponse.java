@@ -1,4 +1,4 @@
-package com.chaean.promptdrive.member.internal.application;
+package com.chaean.promptdrive.member.internal.dto;
 
 import java.time.Duration;
 
@@ -8,13 +8,13 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class TokenPair {
+public class TokenPairResponse {
 
 	private final String accessToken;
 	private final String refreshToken;
 	private final Duration refreshTokenTtl;
 
-	public static TokenPair of(String accessToken, String refreshToken, Duration refreshTokenTtl) {
-		return new TokenPair(accessToken, refreshToken, refreshTokenTtl);
+	public static TokenPairResponse of(String accessToken, String refreshToken, Duration refreshTokenTtl) {
+		return new TokenPairResponse(accessToken, refreshToken, refreshTokenTtl);
 	}
 }
