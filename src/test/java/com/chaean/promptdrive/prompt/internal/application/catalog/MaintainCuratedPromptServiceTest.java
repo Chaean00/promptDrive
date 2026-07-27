@@ -24,11 +24,13 @@ import com.chaean.promptdrive.prompt.internal.persistence.PromptRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("큐레이션 Prompt 관리 서비스")
 class MaintainCuratedPromptServiceTest {
 
 	@Mock
@@ -46,6 +48,7 @@ class MaintainCuratedPromptServiceTest {
 	}
 
 	@Test
+	@DisplayName("중복 category를 비즈니스 오류로 거부한다")
 	void rejectsDuplicateCategoriesAsBusinessError() {
 		CreateCuratedPromptRequest request = new CreateCuratedPromptRequest(
 			"title", "content", List.of(PromptCategoryType.DEVELOPMENT, PromptCategoryType.DEVELOPMENT),
@@ -59,6 +62,7 @@ class MaintainCuratedPromptServiceTest {
 	}
 
 	@Test
+	@DisplayName("null category를 비즈니스 오류로 거부한다")
 	void rejectsNullCategoryAsBusinessError() {
 		CreateCuratedPromptRequest request = new CreateCuratedPromptRequest(
 			"title", "content", java.util.Arrays.asList(PromptCategoryType.DEVELOPMENT, null),
@@ -71,6 +75,7 @@ class MaintainCuratedPromptServiceTest {
 	}
 
 	@Test
+	@DisplayName("큐레이션 Prompt와 활성 category를 함께 삭제한다")
 	void deletesCuratedPromptAndAllActiveCategories() {
 		Prompt prompt = Prompt.createCurated("title", "content", PromptVisibility.PUBLIC, null, null);
 		PromptCategory category = PromptCategory.create(prompt, PromptCategoryType.DEVELOPMENT);
@@ -84,6 +89,7 @@ class MaintainCuratedPromptServiceTest {
 	}
 
 	@Test
+	@DisplayName("기존 category는 유지하고 새로운 category만 추가해 Prompt를 수정한다")
 	void updatesCuratedPromptByPreservingExistingAndAddingOnlyNewCategories() {
 		Prompt prompt = Prompt.createCurated("title", "content", PromptVisibility.PUBLIC, null, null);
 		PromptCategory existing = PromptCategory.create(prompt, PromptCategoryType.DEVELOPMENT);
@@ -101,6 +107,7 @@ class MaintainCuratedPromptServiceTest {
 	}
 
 	@Test
+	@DisplayName("커뮤니티 Prompt는 큐레이션 서비스에서 관리할 수 없다")
 	void communityPromptCannotBeManagedByCuratedService() {
 		when(promptRepository.findByIdAndProvenance(1L, PromptProvenance.CURATED)).thenReturn(Optional.empty());
 
