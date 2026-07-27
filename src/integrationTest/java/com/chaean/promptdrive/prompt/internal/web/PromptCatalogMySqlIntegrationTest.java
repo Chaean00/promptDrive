@@ -14,6 +14,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -26,6 +27,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,6 +62,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Testcontainers(disabledWithoutDocker = true)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@DisplayName("Prompt catalog MySQL 통합 테스트")
 class PromptCatalogMySqlIntegrationTest {
 
 	@Container
@@ -116,12 +120,14 @@ class PromptCatalogMySqlIntegrationTest {
 	}
 
 	@Test
+	@DisplayName("Flyway schema에서 고정 category 목록을 제공한다")
 	void startsWithFlywayValidatedMySqlSchemaAndServesFixedCategories() throws Exception {
 		mockMvc.perform(get("/api/prompt-categories"))
 			.andExpect(status().isOk());
 	}
 
 	@Test
+	@DisplayName("큐레이션 Prompt의 생성·수정·공개·숨김·삭제 lifecycle을 처리한다")
 	void completesCuratedAdminVisibilityAndSoftDeleteLifecycle() throws Exception {
 		MvcResult created = mockMvc.perform(post("/api/admin/prompts")
 				.header("Authorization", "Bearer " + adminToken)
@@ -230,6 +236,7 @@ class PromptCatalogMySqlIntegrationTest {
 
 	@Test
 	@Transactional
+	@DisplayName("Prompt 목록 조회에서 Prompt와 category를 배치 조회한다")
 	void loadsBrowsePageWithOnePromptQueryAndOneBatchCategoryQuery() throws Exception {
 		for (int index = 0; index < 3; index++) {
 			maintainCuratedPromptService.create(new CreateCuratedPromptRequest(

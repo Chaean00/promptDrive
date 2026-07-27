@@ -81,7 +81,10 @@ public class OAuthAuthController {
 			@CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshToken,
 			HttpServletRequest request) {
 		originValidator.requireAllowedOrigin(request);
-		TokenPairResponse tokenPair = refreshTokenService.rotate(requireRefreshToken(refreshToken));
+		if (refreshToken == null || refreshToken.isBlank()) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).header(HttpHeaders.SET_COOKIE, deleteRefreshCookie().toString()).build();
+		}
+		TokenPairResponse tokenPair = refreshTokenService.rotate(refreshToken);
 		if (tokenPair == null) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).header(HttpHeaders.SET_COOKIE, deleteRefreshCookie().toString()).build();
 		}
@@ -125,10 +128,4 @@ public class OAuthAuthController {
 				.orElseThrow(() -> new BusinessException(CommonErrorCode.INVALID_REQUEST));
 	}
 
-	private String requireRefreshToken(String refreshToken) {
-		if (refreshToken == null || refreshToken.isBlank()) {
-			throw new BusinessException(CommonErrorCode.UNAUTHORIZED_REQUEST);
-		}
-		return refreshToken;
-	}
 }
