@@ -27,8 +27,7 @@ import java.util.Objects;
 @Getter
 @Entity
 @Table(name = "prompt", indexes = {
-		@Index(name = "idx_prompt_owner_member_id", columnList = "owner_member_id"),
-		@Index(name = "idx_prompt_public_browse", columnList = "visibility, deleted_at, created_at, id")
+		@Index(name = "idx_prompt_owner_member_id", columnList = "owner_member_id")
 })
 @SQLRestriction("deleted_at IS NULL")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
