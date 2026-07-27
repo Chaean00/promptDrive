@@ -3,6 +3,8 @@ package com.chaean.promptdrive.prompt.internal.persistence;
 import org.hibernate.annotations.SQLRestriction;
 
 import com.chaean.promptdrive.common.persistence.BaseEntity;
+import com.chaean.promptdrive.common.web.error.CommonErrorCode;
+import com.chaean.promptdrive.common.web.error.exception.BusinessException;
 import com.chaean.promptdrive.prompt.internal.domain.PromptProvenance;
 import com.chaean.promptdrive.prompt.internal.domain.PromptVisibility;
 
@@ -73,7 +75,7 @@ public class Prompt extends BaseEntity {
 		this.provenance = Objects.requireNonNull(provenance);
 		this.visibility = Objects.requireNonNull(visibility);
 		if (provenance == PromptProvenance.CURATED && ownerMemberId != null) {
-			throw new IllegalArgumentException("Curated prompts cannot have an owner");
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
 		this.ownerMemberId = ownerMemberId;
 		this.sourceName = sourceName;
@@ -105,7 +107,7 @@ public class Prompt extends BaseEntity {
 
 	private void assertCurated() {
 		if (provenance != PromptProvenance.CURATED || ownerMemberId != null) {
-			throw new IllegalStateException("Only ownerless curated prompts can be managed");
+			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
 	}
 }

@@ -15,14 +15,17 @@ import com.chaean.promptdrive.prompt.internal.domain.PromptVisibility;
 public interface PromptRepository extends JpaRepository<Prompt, Long> {
 
 	@Query("""
-			select p from Prompt p
-			where p.visibility = :visibility
-			and (:provenance is null or p.provenance = :provenance)
-			and (:category is null or exists (
-				select pc.id from PromptCategory pc
-				where pc.prompt = p and pc.category = :category
+			SELECT p
+			FROM Prompt p
+			WHERE p.visibility = :visibility
+			AND (:provenance IS NULL OR p.provenance = :provenance)
+			AND (:category IS NULL OR exists (
+				SELECT pc.id
+				FROM PromptCategory pc
+				WHERE pc.prompt = p
+				AND pc.category = :category
 			))
-			order by p.createdAt desc, p.id desc
+			ORDER BY p.createdAt DESC, p.id DESC
 			""")
 	Slice<Prompt> findPublicPrompts(@Param("visibility") PromptVisibility visibility,
 			@Param("provenance") PromptProvenance provenance,
@@ -36,8 +39,12 @@ public interface PromptRepository extends JpaRepository<Prompt, Long> {
 
 	Optional<Prompt> findByIdAndProvenance(Long id, PromptProvenance provenance);
 
-	Slice<Prompt> findByProvenance(PromptProvenance provenance, Pageable pageable);
-
-	Slice<Prompt> findByProvenanceAndVisibility(PromptProvenance provenance, PromptVisibility visibility,
-			Pageable pageable);
+	@Query("""
+		SELECT p
+		FROM Prompt p
+		WHERE p.provenance = com.chaean.promptdrive.prompt.internal.domain.PromptProvenance.CURATED
+		AND (:visibility IS NULL OR p.visibility = :visibility)
+		ORDER BY p.createdAt DESC, p.id DESC
+		""")
+	Slice<Prompt> findCuratedPrompts(@Param("visibility") PromptVisibility visibility, Pageable pageable);
 }

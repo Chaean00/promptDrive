@@ -1,15 +1,15 @@
 package com.chaean.promptdrive.prompt.internal.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
 
 import com.chaean.promptdrive.prompt.internal.domain.PromptCategoryType;
 import com.chaean.promptdrive.prompt.internal.domain.PromptProvenance;
 import com.chaean.promptdrive.prompt.internal.domain.PromptVisibility;
+import com.chaean.promptdrive.common.web.error.exception.BusinessException;
 
 class PromptPersistenceTest {
 
@@ -23,8 +23,9 @@ class PromptPersistenceTest {
 
 	@Test
 	void curatedPromptRejectsOwner() {
-		assertThatIllegalArgumentException().isThrownBy(() -> new Prompt(
-				"title", "content", PromptProvenance.CURATED, PromptVisibility.PUBLIC, 1L, null, null));
+		assertThatThrownBy(() -> new Prompt(
+			"title", "content", PromptProvenance.CURATED, PromptVisibility.PUBLIC, 1L, null, null))
+			.isInstanceOf(BusinessException.class);
 	}
 
 	@Test
@@ -45,7 +46,8 @@ class PromptPersistenceTest {
 		Prompt prompt = new Prompt("title", "content", PromptProvenance.COMMUNITY,
 				PromptVisibility.PUBLIC, 1L, null, null);
 
-		assertThatIllegalStateException().isThrownBy(() -> prompt.changeVisibility(PromptVisibility.HIDDEN));
+		assertThatThrownBy(() -> prompt.changeVisibility(PromptVisibility.HIDDEN))
+			.isInstanceOf(BusinessException.class);
 	}
 
 	@Test
