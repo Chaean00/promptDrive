@@ -25,7 +25,7 @@ public class JwtAccessTokenIssuer {
 	private final ObjectProvider<JwtEncoder> jwtEncoderProvider;
 	private final JwtProperties properties;
 
-	public String issue(Member member, Instant now) {
+	public String issueAccessToken(Member member, Instant now) {
 		JwtEncoder jwtEncoder = jwtEncoderProvider.getIfAvailable();
 		if (jwtEncoder == null || isBlank(properties.getIssuer()) || isBlank(properties.getAudience())) {
 			throw new BusinessException(CommonErrorCode.SERVICE_UNAVAILABLE);

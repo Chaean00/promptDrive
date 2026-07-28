@@ -18,7 +18,7 @@ import com.chaean.promptdrive.member.internal.persistence.OAuthLoginAttemptRepos
 import static org.mockito.Mockito.mock;
 
 @DisplayName("OAuth 로그인 시도 상태 서비스")
-class OAuthLoginAttemptServiceTest {
+class ConsumeOAuthLoginAttemptServiceTest {
 
 	@Test
 	@DisplayName("이미 사용한 state를 다시 사용하면 인증 오류를 반환한다")
@@ -27,11 +27,11 @@ class OAuthLoginAttemptServiceTest {
 		OAuthLoginAttempt attempt = new OAuthLoginAttempt(SocialProvider.GOOGLE, "state-hash", "encrypted-verifier", null,
 				"/", Instant.now().plusSeconds(300));
 		given(repository.findByStateHash("state-hash")).willReturn(Optional.of(attempt));
-		OAuthLoginAttemptService service = new OAuthLoginAttemptService(repository);
+		ConsumeOAuthLoginAttemptService service = new ConsumeOAuthLoginAttemptService(repository);
 
-		service.consume(SocialProvider.GOOGLE, "state-hash");
+		service.consumeOAuthLoginAttempt(SocialProvider.GOOGLE, "state-hash");
 
-		assertThatThrownBy(() -> service.consume(SocialProvider.GOOGLE, "state-hash"))
+		assertThatThrownBy(() -> service.consumeOAuthLoginAttempt(SocialProvider.GOOGLE, "state-hash"))
 				.isInstanceOf(BusinessException.class)
 				.extracting(exception -> ((BusinessException) exception).getErrorCode())
 				.isEqualTo(CommonErrorCode.UNAUTHORIZED_REQUEST);
@@ -44,9 +44,9 @@ class OAuthLoginAttemptServiceTest {
 		OAuthLoginAttempt attempt = new OAuthLoginAttempt(SocialProvider.GOOGLE, "state-hash", "encrypted-verifier", null,
 				"/", Instant.now().minusSeconds(1));
 		given(repository.findByStateHash("state-hash")).willReturn(Optional.of(attempt));
-		OAuthLoginAttemptService service = new OAuthLoginAttemptService(repository);
+		ConsumeOAuthLoginAttemptService service = new ConsumeOAuthLoginAttemptService(repository);
 
-		assertThatThrownBy(() -> service.consume(SocialProvider.GOOGLE, "state-hash"))
+		assertThatThrownBy(() -> service.consumeOAuthLoginAttempt(SocialProvider.GOOGLE, "state-hash"))
 				.isInstanceOf(BusinessException.class)
 				.extracting(exception -> ((BusinessException) exception).getErrorCode())
 				.isEqualTo(CommonErrorCode.UNAUTHORIZED_REQUEST);
@@ -59,9 +59,9 @@ class OAuthLoginAttemptServiceTest {
 		OAuthLoginAttempt attempt = new OAuthLoginAttempt(SocialProvider.GOOGLE, "state-hash", "encrypted-verifier", null,
 				"/", Instant.now().plusSeconds(300));
 		given(repository.findByStateHash("state-hash")).willReturn(Optional.of(attempt));
-		OAuthLoginAttemptService service = new OAuthLoginAttemptService(repository);
+		ConsumeOAuthLoginAttemptService service = new ConsumeOAuthLoginAttemptService(repository);
 
-		assertThatThrownBy(() -> service.consume(SocialProvider.KAKAO, "state-hash"))
+		assertThatThrownBy(() -> service.consumeOAuthLoginAttempt(SocialProvider.KAKAO, "state-hash"))
 				.isInstanceOf(BusinessException.class)
 				.extracting(exception -> ((BusinessException) exception).getErrorCode())
 				.isEqualTo(CommonErrorCode.UNAUTHORIZED_REQUEST);

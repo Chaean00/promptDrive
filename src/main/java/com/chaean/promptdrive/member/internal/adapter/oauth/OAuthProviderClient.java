@@ -7,7 +7,7 @@ public interface OAuthProviderClient {
 
 	SocialProvider provider();
 
-	String authorizationUri(String state, String codeChallenge, String nonce);
+	String createAuthorizationUri(String state, String codeChallenge, String nonce);
 
-	SocialIdentityProfileResponse authenticate(String authorizationCode, String pkceVerifier, String nonce);
+	SocialIdentityProfileResponse authenticateUser(String authorizationCode, String pkceVerifier, String nonce);
 }

@@ -28,7 +28,7 @@ public abstract class BaseEntity {
 	@Column(name = "deleted_at")
 	private LocalDateTime deletedAt;
 
-	public void delete() {
+	public void softDelete() {
 		deletedAt = LocalDateTime.now();
 	}
 }

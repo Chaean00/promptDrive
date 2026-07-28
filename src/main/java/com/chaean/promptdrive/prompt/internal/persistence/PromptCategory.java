@@ -53,7 +53,7 @@ public class PromptCategory extends BaseEntity {
 		this.category = Objects.requireNonNull(category);
 	}
 
-	public static PromptCategory create(Prompt prompt, PromptCategoryType category) {
+	public static PromptCategory createPromptCategory(Prompt prompt, PromptCategoryType category) {
 		return new PromptCategory(prompt, category);
 	}
 }

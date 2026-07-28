@@ -15,16 +15,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class OAuthLoginAttemptService {
+public class ConsumeOAuthLoginAttemptService {
 
 	private final OAuthLoginAttemptRepository loginAttemptRepository;
 
 	@Transactional
-	public OAuthLoginAttempt consume(SocialProvider provider, String stateHash) {
+	public OAuthLoginAttempt consumeOAuthLoginAttempt(SocialProvider provider, String stateHash) {
 		OAuthLoginAttempt attempt = loginAttemptRepository.findByStateHash(stateHash)
 				.orElseThrow(() -> new BusinessException(CommonErrorCode.UNAUTHORIZED_REQUEST));
 
-		if (attempt.getProvider() != provider || !attempt.consume(Instant.now())) {
+		if (attempt.getProvider() != provider || !attempt.consumeOAuthLoginAttempt(Instant.now())) {
 			throw new BusinessException(CommonErrorCode.UNAUTHORIZED_REQUEST);
 		}
 

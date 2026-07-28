@@ -19,9 +19,9 @@ public class GetPublicPromptService {
 	private final PromptCategoryRepository promptCategoryRepository;
 	private final PromptResponseMapper responseMapper;
 
-	public PromptDetailResponse get(Long promptId) {
+	public PromptDetailResponse findPublicPrompt(Long promptId) {
 		var prompt = promptRepository.findByIdAndVisibility(promptId, PromptVisibility.PUBLIC)
 			.orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND));
-		return responseMapper.toDetail(prompt, promptCategoryRepository.findAllByPromptId(promptId));
+		return responseMapper.toPromptDetailResponse(prompt, promptCategoryRepository.findAllByPromptId(promptId));
 	}
 }

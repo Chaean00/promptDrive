@@ -2,7 +2,7 @@ package com.chaean.promptdrive.prompt.internal.web.catalog;
 
 import com.chaean.promptdrive.common.web.response.ApiResponse;
 import com.chaean.promptdrive.common.web.response.SliceResponse;
-import com.chaean.promptdrive.prompt.internal.application.catalog.MaintainCuratedPromptService;
+import com.chaean.promptdrive.prompt.internal.application.catalog.CuratedPromptCommandService;
 import com.chaean.promptdrive.prompt.internal.domain.PromptVisibility;
 import com.chaean.promptdrive.prompt.internal.dto.CreateCuratedPromptRequest;
 import com.chaean.promptdrive.prompt.internal.dto.CuratedPromptResponse;
@@ -31,49 +31,49 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AdminPromptController {
 
-	private final MaintainCuratedPromptService maintainCuratedPromptService;
+	private final CuratedPromptCommandService curatedPromptCommandService;
 
 	@GetMapping
-	public SliceResponse<CuratedPromptResponse> browse(
+	public SliceResponse<CuratedPromptResponse> listCuratedPrompts(
 		@RequestParam(required = false) PromptVisibility visibility,
 		@RequestParam(defaultValue = "0") Integer page,
 		@RequestParam(defaultValue = "20") Integer size
 	) {
-		return maintainCuratedPromptService.browse(visibility, page, size);
+		return curatedPromptCommandService.findCuratedPromptSummaries(visibility, page, size);
 	}
 
 	@GetMapping("/{promptId}")
-	public ApiResponse<CuratedPromptResponse> get(@PathVariable Long promptId) {
-		return ApiResponse.of(maintainCuratedPromptService.get(promptId));
+	public ApiResponse<CuratedPromptResponse> getCuratedPrompt(@PathVariable Long promptId) {
+		return ApiResponse.of(curatedPromptCommandService.getCuratedPrompt(promptId));
 	}
 
 	@PostMapping
-	public ResponseEntity<ApiResponse<CuratedPromptResponse>> create(
+	public ResponseEntity<ApiResponse<CuratedPromptResponse>> createCuratedPrompt(
 		@Valid @RequestBody CreateCuratedPromptRequest request
 	) {
 		return ResponseEntity.status(HttpStatus.CREATED)
-			.body(ApiResponse.of(maintainCuratedPromptService.create(request)));
+			.body(ApiResponse.of(curatedPromptCommandService.createCuratedPrompt(request)));
 	}
 
 	@PutMapping("/{promptId}")
-	public ApiResponse<CuratedPromptResponse> update(
+	public ApiResponse<CuratedPromptResponse> updateCuratedPrompt(
 		@PathVariable Long promptId,
 		@Valid @RequestBody UpdateCuratedPromptRequest request
 	) {
-		return ApiResponse.of(maintainCuratedPromptService.update(promptId, request));
+		return ApiResponse.of(curatedPromptCommandService.updateCuratedPrompt(promptId, request));
 	}
 
 	@PatchMapping("/{promptId}/visibility")
-	public ApiResponse<CuratedPromptResponse> changeVisibility(
+	public ApiResponse<CuratedPromptResponse> changeCuratedPromptVisibility(
 		@PathVariable Long promptId,
 		@Valid @RequestBody UpdatePromptVisibilityRequest request
 	) {
-		return ApiResponse.of(maintainCuratedPromptService.changeVisibility(promptId, request.getVisibility()));
+		return ApiResponse.of(curatedPromptCommandService.changeCuratedPromptVisibility(promptId, request.getVisibility()));
 	}
 
 	@DeleteMapping("/{promptId}")
-	public ResponseEntity<Void> delete(@PathVariable Long promptId) {
-		maintainCuratedPromptService.delete(promptId);
+	public ResponseEntity<Void> deleteCuratedPrompt(@PathVariable Long promptId) {
+		curatedPromptCommandService.deleteCuratedPrompt(promptId);
 		return ResponseEntity.noContent().build();
 	}
 }

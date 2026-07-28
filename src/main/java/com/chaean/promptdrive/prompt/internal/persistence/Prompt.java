@@ -81,51 +81,51 @@ public class Prompt extends BaseEntity {
 		this.sourceUrl = sourceUrl;
 	}
 
-	public static Prompt createCurated(String title, String content, PromptVisibility visibility,
+	public static Prompt createCuratedPrompt(String title, String content, PromptVisibility visibility,
 			String sourceName, String sourceUrl) {
 		return new Prompt(title, content, PromptProvenance.CURATED, visibility, null, sourceName, sourceUrl);
 	}
 
-	public static Prompt createCommunity(Long ownerMemberId, String title, String content) {
+	public static Prompt createCommunityPrompt(Long ownerMemberId, String title, String content) {
 		return new Prompt(title, content, PromptProvenance.COMMUNITY, PromptVisibility.PUBLIC, ownerMemberId, null, null);
 	}
 
-	public void updateCurated(String title, String content, String sourceName, String sourceUrl) {
-		assertCurated();
+	public void updateCuratedPrompt(String title, String content, String sourceName, String sourceUrl) {
+		assertCuratedPrompt();
 		this.title = Objects.requireNonNull(title);
 		this.content = Objects.requireNonNull(content);
 		this.sourceName = sourceName;
 		this.sourceUrl = sourceUrl;
 	}
 
-	public void changeVisibility(PromptVisibility visibility) {
-		assertCurated();
+	public void changeCuratedPromptVisibility(PromptVisibility visibility) {
+		assertCuratedPrompt();
 		this.visibility = Objects.requireNonNull(visibility);
 	}
 
-	public void deleteCurated() {
-		assertCurated();
-		delete();
+	public void softDeleteCuratedPrompt() {
+		assertCuratedPrompt();
+		softDelete();
 	}
 
-	public void updateCommunity(Long ownerMemberId, String title, String content) {
-		assertCommunityOwner(ownerMemberId);
+	public void updateCommunityPrompt(Long ownerMemberId, String title, String content) {
+		assertCommunityPromptOwner(ownerMemberId);
 		this.title = Objects.requireNonNull(title);
 		this.content = Objects.requireNonNull(content);
 	}
 
-	public void deleteCommunity(Long ownerMemberId) {
-		assertCommunityOwner(ownerMemberId);
-		delete();
+	public void softDeleteCommunityPrompt(Long ownerMemberId) {
+		assertCommunityPromptOwner(ownerMemberId);
+		softDelete();
 	}
 
-	private void assertCurated() {
+	private void assertCuratedPrompt() {
 		if (provenance != PromptProvenance.CURATED || ownerMemberId != null) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
 	}
 
-	private void assertCommunityOwner(Long ownerMemberId) {
+	private void assertCommunityPromptOwner(Long ownerMemberId) {
 		if (provenance != PromptProvenance.COMMUNITY || ownerMemberId == null
 			|| !Objects.equals(this.ownerMemberId, ownerMemberId)) {
 			throw new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND);

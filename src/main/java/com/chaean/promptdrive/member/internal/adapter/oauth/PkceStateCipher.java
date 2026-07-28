@@ -28,13 +28,13 @@ public class PkceStateCipher {
 	private final MemberOAuthProperties properties;
 	private final SecureRandom secureRandom = new SecureRandom();
 
-	public String encrypt(String value) {
+	public String encryptPkceVerifier(String verifier) {
 		try {
 			byte[] iv = new byte[IV_LENGTH];
 			secureRandom.nextBytes(iv);
 			Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-			cipher.init(Cipher.ENCRYPT_MODE, key(), new GCMParameterSpec(TAG_LENGTH, iv));
-			byte[] encrypted = cipher.doFinal(value.getBytes(StandardCharsets.UTF_8));
+			cipher.init(Cipher.ENCRYPT_MODE, createStateEncryptionKey(), new GCMParameterSpec(TAG_LENGTH, iv));
+			byte[] encrypted = cipher.doFinal(verifier.getBytes(StandardCharsets.UTF_8));
 			return Base64.getUrlEncoder().withoutPadding().encodeToString(ByteBuffer.allocate(iv.length + encrypted.length)
 					.put(iv).put(encrypted).array());
 		} catch (GeneralSecurityException exception) {
@@ -42,9 +42,9 @@ public class PkceStateCipher {
 		}
 	}
 
-	public String decrypt(String value) {
+	public String decryptPkceVerifier(String encryptedVerifier) {
 		try {
-			byte[] payload = decode(value);
+			byte[] payload = decodeEncryptedPayload(encryptedVerifier);
 			if (payload.length <= IV_LENGTH) {
 				throw new BusinessException(CommonErrorCode.UNAUTHORIZED_REQUEST);
 			}
@@ -53,14 +53,14 @@ public class PkceStateCipher {
 			System.arraycopy(payload, 0, iv, 0, iv.length);
 			System.arraycopy(payload, iv.length, encrypted, 0, encrypted.length);
 			Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-			cipher.init(Cipher.DECRYPT_MODE, key(), new GCMParameterSpec(TAG_LENGTH, iv));
+			cipher.init(Cipher.DECRYPT_MODE, createStateEncryptionKey(), new GCMParameterSpec(TAG_LENGTH, iv));
 			return new String(cipher.doFinal(encrypted), StandardCharsets.UTF_8);
 		} catch (GeneralSecurityException exception) {
 			throw new BusinessException(CommonErrorCode.UNAUTHORIZED_REQUEST);
 		}
 	}
 
-	private SecretKey key() {
+	private SecretKey createStateEncryptionKey() {
 		try {
 			properties.requireStateEncryptionKey();
 			byte[] key = Base64.getDecoder().decode(properties.getStateEncryptionKey());
@@ -75,9 +75,9 @@ public class PkceStateCipher {
 		}
 	}
 
-	private byte[] decode(String value) {
+	private byte[] decodeEncryptedPayload(String encryptedValue) {
 		try {
-			return Base64.getUrlDecoder().decode(value);
+			return Base64.getUrlDecoder().decode(encryptedValue);
 		} catch (RuntimeException exception) {
 			throw new BusinessException(CommonErrorCode.UNAUTHORIZED_REQUEST);
 		}

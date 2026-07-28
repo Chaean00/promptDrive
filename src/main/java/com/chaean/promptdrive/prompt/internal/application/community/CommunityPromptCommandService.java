@@ -30,7 +30,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class MaintainCommunityPromptService {
+public class CommunityPromptCommandService {
 
 	private static final int DEFAULT_PAGE = 0;
 	private static final int DEFAULT_SIZE = 20;
@@ -40,73 +40,73 @@ public class MaintainCommunityPromptService {
 	private final PromptCategoryRepository promptCategoryRepository;
 	private final PromptResponseMapper responseMapper;
 
-	public SliceResponse<PromptSummaryResponse> browse(Long ownerMemberId, Integer page, Integer size) {
+	public SliceResponse<PromptSummaryResponse> findOwnedCommunityPromptSummaries(Long ownerMemberId, Integer page, Integer size) {
 		int resolvedPage = page == null ? DEFAULT_PAGE : page;
 		int resolvedSize = size == null ? DEFAULT_SIZE : size;
-		validatePage(resolvedPage, resolvedSize);
+		validatePageRequest(resolvedPage, resolvedSize);
 		var prompts = promptRepository.findAllByOwnerMemberIdAndProvenanceOrderByCreatedAtDescIdDesc(ownerMemberId,
 			PromptProvenance.COMMUNITY, PageRequest.of(resolvedPage, resolvedSize));
-		return SliceResponse.from(responseMapper.toSummarySlice(prompts,
-			categoriesFor(prompts.getContent().stream().map(Prompt::getId).toList())));
+		return SliceResponse.from(responseMapper.toPromptSummaryResponseSlice(prompts,
+			findCategoriesForPrompts(prompts.getContent().stream().map(Prompt::getId).toList())));
 	}
 
-	public PromptDetailResponse get(Long ownerMemberId, Long promptId) {
+	public PromptDetailResponse getOwnedCommunityPrompt(Long ownerMemberId, Long promptId) {
 		Prompt prompt = promptRepository.findByIdAndOwnerMemberIdAndProvenance(promptId, ownerMemberId, PromptProvenance.COMMUNITY)
 				.orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND));
 
-		return responseMapper.toDetail(prompt, promptCategoryRepository.findAllByPromptId(promptId));
+		return responseMapper.toPromptDetailResponse(prompt, promptCategoryRepository.findAllByPromptId(promptId));
 	}
 
 	@Transactional
-	public PromptDetailResponse create(Long ownerMemberId, CreateCommunityPromptRequest request) {
-		Set<PromptCategoryType> categories = validateCategories(request.getCategories());
-		Prompt prompt = promptRepository.save(Prompt.createCommunity(ownerMemberId, request.getTitle(), request.getContent()));
-		replaceCategories(prompt, categories, List.of());
-		return responseMapper.toDetail(prompt, promptCategoryRepository.findAllByPromptId(prompt.getId()));
+	public PromptDetailResponse createCommunityPrompt(Long ownerMemberId, CreateCommunityPromptRequest request) {
+		Set<PromptCategoryType> categories = validatePromptCategories(request.getCategories());
+		Prompt prompt = promptRepository.save(Prompt.createCommunityPrompt(ownerMemberId, request.getTitle(), request.getContent()));
+		replacePromptCategories(prompt, categories, List.of());
+		return responseMapper.toPromptDetailResponse(prompt, promptCategoryRepository.findAllByPromptId(prompt.getId()));
 	}
 
 	@Transactional
-	public PromptDetailResponse update(Long ownerMemberId, Long promptId, UpdateCommunityPromptRequest request) {
+	public PromptDetailResponse updateCommunityPrompt(Long ownerMemberId, Long promptId, UpdateCommunityPromptRequest request) {
 		Prompt prompt = promptRepository.findByIdAndOwnerMemberIdAndProvenance(promptId, ownerMemberId, PromptProvenance.COMMUNITY)
 				.orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND));
 
 		List<PromptCategory> existing = promptCategoryRepository.findAllByPromptId(promptId);
 
-		Set<PromptCategoryType> categories = validateCategories(request.getCategories());
-		prompt.updateCommunity(ownerMemberId, request.getTitle(), request.getContent());
-		replaceCategories(prompt, categories, existing);
-		return responseMapper.toDetail(prompt, promptCategoryRepository.findAllByPromptId(promptId));
+		Set<PromptCategoryType> categories = validatePromptCategories(request.getCategories());
+		prompt.updateCommunityPrompt(ownerMemberId, request.getTitle(), request.getContent());
+		replacePromptCategories(prompt, categories, existing);
+		return responseMapper.toPromptDetailResponse(prompt, promptCategoryRepository.findAllByPromptId(promptId));
 	}
 
 	@Transactional
-	public void delete(Long ownerMemberId, Long promptId) {
+	public void deleteCommunityPrompt(Long ownerMemberId, Long promptId) {
 		Prompt prompt = promptRepository.findByIdAndOwnerMemberIdAndProvenance(promptId, ownerMemberId, PromptProvenance.COMMUNITY)
 				.orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND));
 
-		promptCategoryRepository.findAllByPromptId(promptId).forEach(PromptCategory::delete);
-		prompt.deleteCommunity(ownerMemberId);
+		promptCategoryRepository.findAllByPromptId(promptId).forEach(PromptCategory::softDelete);
+		prompt.softDeleteCommunityPrompt(ownerMemberId);
 	}
 
-	private void replaceCategories(Prompt prompt, Set<PromptCategoryType> desired, List<PromptCategory> existing) {
+	private void replacePromptCategories(Prompt prompt, Set<PromptCategoryType> desired, List<PromptCategory> existing) {
 		Set<PromptCategoryType> current = existing.stream()
 				.map(PromptCategory::getCategory)
 				.collect(Collectors.toSet());
 
 		existing.stream().filter(category -> !desired.contains(category.getCategory()))
-				.forEach(PromptCategory::delete);
+				.forEach(PromptCategory::softDelete);
 
 		List<PromptCategory> additions = desired.stream().filter(category -> !current.contains(category))
-			.map(category -> PromptCategory.create(prompt, category)).toList();
+			.map(category -> PromptCategory.createPromptCategory(prompt, category)).toList();
 		if (!additions.isEmpty()) {
 			promptCategoryRepository.saveAll(additions);
 		}
 	}
 
-	private List<PromptCategory> categoriesFor(List<Long> promptIds) {
+	private List<PromptCategory> findCategoriesForPrompts(List<Long> promptIds) {
 		return promptIds.isEmpty() ? List.of() : promptCategoryRepository.findAllByPromptIdIn(promptIds);
 	}
 
-	private Set<PromptCategoryType> validateCategories(List<PromptCategoryType> categories) {
+	private Set<PromptCategoryType> validatePromptCategories(List<PromptCategoryType> categories) {
 		if (categories == null || categories.stream().anyMatch(Objects::isNull)
 			|| new HashSet<>(categories).size() != categories.size()) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
@@ -114,7 +114,7 @@ public class MaintainCommunityPromptService {
 		return categories.isEmpty() ? EnumSet.noneOf(PromptCategoryType.class) : EnumSet.copyOf(categories);
 	}
 
-	private void validatePage(int page, int size) {
+	private void validatePageRequest(int page, int size) {
 		if (page < 0 || size < 1 || size > MAX_SIZE) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}

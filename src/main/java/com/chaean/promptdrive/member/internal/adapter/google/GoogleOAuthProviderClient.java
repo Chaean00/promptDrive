@@ -45,7 +45,7 @@ public class GoogleOAuthProviderClient implements OAuthProviderClient {
 	}
 
 	@Override
-	public String authorizationUri(String state, String codeChallenge, String nonce) {
+	public String createAuthorizationUri(String state, String codeChallenge, String nonce) {
 		OAuthProviderProperties provider = properties.getGoogle();
 		properties.requireConfigured(provider);
 		return UriComponentsBuilder.fromUriString(provider.getAuthorizationUri())
@@ -61,7 +61,7 @@ public class GoogleOAuthProviderClient implements OAuthProviderClient {
 	}
 
 	@Override
-	public SocialIdentityProfileResponse authenticate(String authorizationCode, String pkceVerifier, String nonceHash) {
+	public SocialIdentityProfileResponse authenticateUser(String authorizationCode, String pkceVerifier, String nonceHash) {
 		OAuthProviderProperties provider = properties.getGoogle();
 		properties.requireConfigured(provider);
 
@@ -97,7 +97,7 @@ public class GoogleOAuthProviderClient implements OAuthProviderClient {
 	private Jwt validateIdToken(String idToken, String clientId, String nonceHash) {
 		try {
 			Jwt jwt = idTokenDecoderProvider.getObject().decode(idToken);
-			if (!jwt.getAudience().contains(clientId) || !nonceHash.equals(valueGenerator.sha256(jwt.getClaimAsString("nonce")))) {
+			if (!jwt.getAudience().contains(clientId) || !nonceHash.equals(valueGenerator.hashWithSha256(jwt.getClaimAsString("nonce")))) {
 				throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR);
 			}
 			return jwt;

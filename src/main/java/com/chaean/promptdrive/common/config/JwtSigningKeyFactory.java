@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class JwtSigningKeyFactory {
 
-	public SecretKey create(String encodedSigningKey) {
+	public SecretKey createSigningKey(String encodedSigningKey) {
 		try {
 			byte[] key = Base64.getDecoder().decode(encodedSigningKey);
 			if (key.length != 32) {

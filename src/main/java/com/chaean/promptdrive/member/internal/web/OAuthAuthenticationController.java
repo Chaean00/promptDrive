@@ -5,8 +5,8 @@ import java.time.Duration;
 import com.chaean.promptdrive.common.config.JwtProperties;
 import com.chaean.promptdrive.common.web.error.CommonErrorCode;
 import com.chaean.promptdrive.common.web.error.exception.BusinessException;
-import com.chaean.promptdrive.member.internal.application.OAuthLoginService;
-import com.chaean.promptdrive.member.internal.application.RefreshTokenService;
+import com.chaean.promptdrive.member.internal.application.OAuthAuthenticationService;
+import com.chaean.promptdrive.member.internal.application.RefreshTokenManagementService;
 import com.chaean.promptdrive.member.internal.dto.AuthTokenResponse;
 import com.chaean.promptdrive.member.internal.dto.OAuthLoginResponse;
 import com.chaean.promptdrive.member.internal.dto.OAuthLoginStartResponse;
@@ -33,58 +33,58 @@ import org.springframework.security.web.csrf.CsrfToken;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-public class OAuthAuthController {
+public class OAuthAuthenticationController {
 
 	private static final String REFRESH_COOKIE_NAME = "refresh_token";
 	private static final String REFRESH_COOKIE_PATH = "/api/auth/refresh";
 	private static final String LOGIN_STATE_COOKIE_NAME = "oauth_login_state";
 
-	private final OAuthLoginService oauthLoginService;
-	private final RefreshTokenService refreshTokenService;
+	private final OAuthAuthenticationService oauthAuthenticationService;
+	private final RefreshTokenManagementService refreshTokenManagementService;
 	private final OAuthOriginValidator originValidator;
 	private final JwtProperties jwtProperties;
 
 	@GetMapping("/{provider}/start")
-	public ResponseEntity<Void> start(@PathVariable String provider,
+	public ResponseEntity<Void> startOAuthLogin(@PathVariable String provider,
 			@RequestParam(required = false) String returnPath) {
-		OAuthLoginStartResponse loginStart = oauthLoginService.start(parseProvider(provider), returnPath);
+		OAuthLoginStartResponse loginStart = oauthAuthenticationService.startOAuthLogin(parseSocialProvider(provider), returnPath);
 		return ResponseEntity.status(HttpStatus.FOUND).header(HttpHeaders.LOCATION, loginStart.getAuthorizationUri())
 				.header(HttpHeaders.SET_COOKIE, loginStateCookie(loginStart.getState()).toString()).build();
 	}
 
 	@GetMapping("/csrf")
-	public ResponseEntity<Void> csrf(CsrfToken csrfToken) {
+	public ResponseEntity<Void> issueCsrfToken(CsrfToken csrfToken) {
 		return ResponseEntity.noContent().header(csrfToken.getHeaderName(), csrfToken.getToken()).build();
 	}
 
 	@GetMapping("/{provider}/callback")
-	public ResponseEntity<AuthTokenResponse> callback(@PathVariable String provider,
+	public ResponseEntity<AuthTokenResponse> completeOAuthLogin(@PathVariable String provider,
 			@RequestParam(required = false) String code, @RequestParam(required = false) String state,
 			@RequestParam(required = false) String error,
 			@CookieValue(name = LOGIN_STATE_COOKIE_NAME, required = false) String browserState) {
-		SocialProvider socialProvider = parseProvider(provider);
+		SocialProvider socialProvider = parseSocialProvider(provider);
 		if (state == null || !state.equals(browserState)) {
 			throw new BusinessException(CommonErrorCode.UNAUTHORIZED_REQUEST);
 		}
 		if (error != null) {
-			oauthLoginService.consume(socialProvider, state);
+			oauthAuthenticationService.consumeOAuthLoginAttempt(socialProvider, state);
 			throw new BusinessException(CommonErrorCode.UNAUTHORIZED_REQUEST);
 		}
-		OAuthLoginResponse result = oauthLoginService.callback(socialProvider, code, state);
+		OAuthLoginResponse result = oauthAuthenticationService.completeOAuthLogin(socialProvider, code, state);
 		return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, refreshCookie(result.getTokens()).toString())
 				.header(HttpHeaders.SET_COOKIE, deleteLoginStateCookie().toString())
 				.body(AuthTokenResponse.of(result.getTokens().getAccessToken(), result.getReturnPath()));
 	}
 
 	@PostMapping("/refresh")
-	public ResponseEntity<AuthTokenResponse> refresh(
+	public ResponseEntity<AuthTokenResponse> refreshAccessToken(
 			@CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshToken,
 			HttpServletRequest request) {
 		originValidator.requireAllowedOrigin(request);
 		if (refreshToken == null || refreshToken.isBlank()) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).header(HttpHeaders.SET_COOKIE, deleteRefreshCookie().toString()).build();
 		}
-		TokenPairResponse tokenPair = refreshTokenService.rotate(refreshToken);
+		TokenPairResponse tokenPair = refreshTokenManagementService.rotateRefreshToken(refreshToken);
 		if (tokenPair == null) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).header(HttpHeaders.SET_COOKIE, deleteRefreshCookie().toString()).build();
 		}
@@ -93,10 +93,10 @@ public class OAuthAuthController {
 	}
 
 	@PostMapping("/refresh/logout")
-	public ResponseEntity<Void> logout(@CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshToken,
+	public ResponseEntity<Void> logoutMember(@CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshToken,
 			HttpServletRequest request) {
 		originValidator.requireAllowedOrigin(request);
-		refreshTokenService.revoke(refreshToken);
+		refreshTokenManagementService.revokeRefreshToken(refreshToken);
 		return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, deleteRefreshCookie().toString()).build();
 	}
 
@@ -123,7 +123,7 @@ public class OAuthAuthController {
 				.maxAge(Duration.ZERO).build();
 	}
 
-	private SocialProvider parseProvider(String provider) {
+	private SocialProvider parseSocialProvider(String provider) {
 		return SocialProvider.from(provider)
 				.orElseThrow(() -> new BusinessException(CommonErrorCode.INVALID_REQUEST));
 	}

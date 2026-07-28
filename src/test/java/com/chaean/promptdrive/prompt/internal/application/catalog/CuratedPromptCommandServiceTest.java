@@ -31,7 +31,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("큐레이션 Prompt 관리 서비스")
-class MaintainCuratedPromptServiceTest {
+class CuratedPromptCommandServiceTest {
 
 	@Mock
 	private PromptRepository promptRepository;
@@ -39,11 +39,11 @@ class MaintainCuratedPromptServiceTest {
 	@Mock
 	private PromptCategoryRepository promptCategoryRepository;
 
-	private MaintainCuratedPromptService service;
+	private CuratedPromptCommandService service;
 
 	@BeforeEach
 	void setUp() {
-		service = new MaintainCuratedPromptService(promptRepository, promptCategoryRepository,
+		service = new CuratedPromptCommandService(promptRepository, promptCategoryRepository,
 			new PromptResponseMapper());
 	}
 
@@ -54,7 +54,7 @@ class MaintainCuratedPromptServiceTest {
 			"title", "content", List.of(PromptCategoryType.DEVELOPMENT, PromptCategoryType.DEVELOPMENT),
 			PromptVisibility.PUBLIC, null, null);
 
-		assertThatThrownBy(() -> service.create(request))
+		assertThatThrownBy(() -> service.createCuratedPrompt(request))
 			.isInstanceOf(BusinessException.class)
 			.satisfies(exception -> assertThat(((BusinessException) exception).getErrorCode())
 				.isEqualTo(CommonErrorCode.INVALID_REQUEST));
@@ -68,7 +68,7 @@ class MaintainCuratedPromptServiceTest {
 			"title", "content", java.util.Arrays.asList(PromptCategoryType.DEVELOPMENT, null),
 			PromptVisibility.PUBLIC, null, null);
 
-		assertThatThrownBy(() -> service.create(request))
+		assertThatThrownBy(() -> service.createCuratedPrompt(request))
 			.isInstanceOf(BusinessException.class)
 			.satisfies(exception -> assertThat(((BusinessException) exception).getErrorCode())
 				.isEqualTo(CommonErrorCode.INVALID_REQUEST));
@@ -77,12 +77,12 @@ class MaintainCuratedPromptServiceTest {
 	@Test
 	@DisplayName("큐레이션 Prompt와 활성 category를 함께 삭제한다")
 	void deletesCuratedPromptAndAllActiveCategories() {
-		Prompt prompt = Prompt.createCurated("title", "content", PromptVisibility.PUBLIC, null, null);
-		PromptCategory category = PromptCategory.create(prompt, PromptCategoryType.DEVELOPMENT);
+		Prompt prompt = Prompt.createCuratedPrompt("title", "content", PromptVisibility.PUBLIC, null, null);
+		PromptCategory category = PromptCategory.createPromptCategory(prompt, PromptCategoryType.DEVELOPMENT);
 		when(promptRepository.findByIdAndProvenance(1L, PromptProvenance.CURATED)).thenReturn(Optional.of(prompt));
 		when(promptCategoryRepository.findAllByPromptId(1L)).thenReturn(List.of(category));
 
-		service.delete(1L);
+		service.deleteCuratedPrompt(1L);
 
 		assertThat(prompt.getDeletedAt()).isNotNull();
 		assertThat(category.getDeletedAt()).isNotNull();
@@ -91,13 +91,13 @@ class MaintainCuratedPromptServiceTest {
 	@Test
 	@DisplayName("기존 category는 유지하고 새로운 category만 추가해 Prompt를 수정한다")
 	void updatesCuratedPromptByPreservingExistingAndAddingOnlyNewCategories() {
-		Prompt prompt = Prompt.createCurated("title", "content", PromptVisibility.PUBLIC, null, null);
-		PromptCategory existing = PromptCategory.create(prompt, PromptCategoryType.DEVELOPMENT);
-		PromptCategory removed = PromptCategory.create(prompt, PromptCategoryType.CODE_REVIEW);
+		Prompt prompt = Prompt.createCuratedPrompt("title", "content", PromptVisibility.PUBLIC, null, null);
+		PromptCategory existing = PromptCategory.createPromptCategory(prompt, PromptCategoryType.DEVELOPMENT);
+		PromptCategory removed = PromptCategory.createPromptCategory(prompt, PromptCategoryType.CODE_REVIEW);
 		when(promptRepository.findByIdAndProvenance(1L, PromptProvenance.CURATED)).thenReturn(Optional.of(prompt));
 		when(promptCategoryRepository.findAllByPromptId(1L)).thenReturn(List.of(existing, removed));
 
-		service.update(1L, new UpdateCuratedPromptRequest("updated", "new content",
+		service.updateCuratedPrompt(1L, new UpdateCuratedPromptRequest("updated", "new content",
 			List.of(PromptCategoryType.DEVELOPMENT, PromptCategoryType.TESTING), null, null));
 
 		assertThat(existing.getDeletedAt()).isNull();
@@ -111,7 +111,7 @@ class MaintainCuratedPromptServiceTest {
 	void communityPromptCannotBeManagedByCuratedService() {
 		when(promptRepository.findByIdAndProvenance(1L, PromptProvenance.CURATED)).thenReturn(Optional.empty());
 
-		assertThatThrownBy(() -> service.get(1L))
+		assertThatThrownBy(() -> service.getCuratedPrompt(1L))
 			.isInstanceOf(BusinessException.class)
 			.satisfies(exception -> assertThat(((BusinessException) exception).getErrorCode())
 				.isEqualTo(CommonErrorCode.RESOURCE_NOT_FOUND));

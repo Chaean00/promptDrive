@@ -43,8 +43,8 @@ import jakarta.persistence.PersistenceContext;
 
 import org.hibernate.SessionFactory;
 
-import com.chaean.promptdrive.prompt.internal.application.catalog.BrowsePromptService;
-import com.chaean.promptdrive.prompt.internal.application.catalog.MaintainCuratedPromptService;
+import com.chaean.promptdrive.prompt.internal.application.catalog.FindPublicPromptCatalogService;
+import com.chaean.promptdrive.prompt.internal.application.catalog.CuratedPromptCommandService;
 import com.chaean.promptdrive.prompt.internal.dto.CreateCuratedPromptRequest;
 import com.chaean.promptdrive.prompt.internal.domain.PromptCategoryType;
 import com.chaean.promptdrive.prompt.internal.domain.PromptVisibility;
@@ -83,10 +83,10 @@ class PromptCatalogMySqlIntegrationTest {
 	private ObjectMapper objectMapper;
 
 	@Autowired
-	private BrowsePromptService browsePromptService;
+	private FindPublicPromptCatalogService findPublicPromptCatalogService;
 
 	@Autowired
-	private MaintainCuratedPromptService maintainCuratedPromptService;
+	private CuratedPromptCommandService curatedPromptCommandService;
 
 	@Autowired
 	private EntityManagerFactory entityManagerFactory;
@@ -239,7 +239,7 @@ class PromptCatalogMySqlIntegrationTest {
 	@DisplayName("Prompt 목록 조회에서 Prompt와 category를 배치 조회한다")
 	void loadsBrowsePageWithOnePromptQueryAndOneBatchCategoryQuery() throws Exception {
 		for (int index = 0; index < 3; index++) {
-			maintainCuratedPromptService.create(new CreateCuratedPromptRequest(
+			curatedPromptCommandService.createCuratedPrompt(new CreateCuratedPromptRequest(
 				"query-count-title-" + index, "query-count-content",
 				List.of(PromptCategoryType.DEVELOPMENT, PromptCategoryType.TESTING), PromptVisibility.PUBLIC, null, null));
 		}
@@ -251,7 +251,7 @@ class PromptCatalogMySqlIntegrationTest {
 
 		SessionFactory sessionFactory = entityManagerFactory.unwrap(SessionFactory.class);
 		sessionFactory.getStatistics().clear();
-		browsePromptService.browse(null, null, 0, 20);
+		findPublicPromptCatalogService.findPublicPromptSummaries(null, null, 0, 20);
 
 		org.assertj.core.api.Assertions.assertThat(sessionFactory.getStatistics().getPrepareStatementCount()).isEqualTo(2);
 	}

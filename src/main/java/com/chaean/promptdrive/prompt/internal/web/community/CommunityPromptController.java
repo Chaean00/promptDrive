@@ -2,7 +2,7 @@ package com.chaean.promptdrive.prompt.internal.web.community;
 
 import com.chaean.promptdrive.common.web.response.ApiResponse;
 import com.chaean.promptdrive.common.web.response.SliceResponse;
-import com.chaean.promptdrive.prompt.internal.application.community.MaintainCommunityPromptService;
+import com.chaean.promptdrive.prompt.internal.application.community.CommunityPromptCommandService;
 import com.chaean.promptdrive.prompt.internal.dto.CreateCommunityPromptRequest;
 import com.chaean.promptdrive.prompt.internal.dto.PromptDetailResponse;
 import com.chaean.promptdrive.prompt.internal.dto.PromptSummaryResponse;
@@ -30,39 +30,39 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CommunityPromptController {
 
-	private final MaintainCommunityPromptService communityPromptService;
+	private final CommunityPromptCommandService communityPromptCommandService;
 
 	@GetMapping
-	public SliceResponse<PromptSummaryResponse> browse(Authentication authentication,
+	public SliceResponse<PromptSummaryResponse> listOwnedCommunityPrompts(Authentication authentication,
 		@RequestParam(defaultValue = "0") Integer page, @RequestParam(defaultValue = "20") Integer size) {
-		return communityPromptService.browse(ownerMemberId(authentication), page, size);
+		return communityPromptCommandService.findOwnedCommunityPromptSummaries(resolveOwnerMemberId(authentication), page, size);
 	}
 
 	@GetMapping("/{promptId}")
-	public ApiResponse<PromptDetailResponse> get(Authentication authentication, @PathVariable Long promptId) {
-		return ApiResponse.of(communityPromptService.get(ownerMemberId(authentication), promptId));
+	public ApiResponse<PromptDetailResponse> getOwnedCommunityPrompt(Authentication authentication, @PathVariable Long promptId) {
+		return ApiResponse.of(communityPromptCommandService.getOwnedCommunityPrompt(resolveOwnerMemberId(authentication), promptId));
 	}
 
 	@PostMapping
-	public ResponseEntity<ApiResponse<PromptDetailResponse>> create(Authentication authentication,
+	public ResponseEntity<ApiResponse<PromptDetailResponse>> createCommunityPrompt(Authentication authentication,
 		@Valid @RequestBody CreateCommunityPromptRequest request) {
 		return ResponseEntity.status(HttpStatus.CREATED)
-			.body(ApiResponse.of(communityPromptService.create(ownerMemberId(authentication), request)));
+			.body(ApiResponse.of(communityPromptCommandService.createCommunityPrompt(resolveOwnerMemberId(authentication), request)));
 	}
 
 	@PutMapping("/{promptId}")
-	public ApiResponse<PromptDetailResponse> update(Authentication authentication, @PathVariable Long promptId,
+	public ApiResponse<PromptDetailResponse> updateCommunityPrompt(Authentication authentication, @PathVariable Long promptId,
 		@Valid @RequestBody UpdateCommunityPromptRequest request) {
-		return ApiResponse.of(communityPromptService.update(ownerMemberId(authentication), promptId, request));
+		return ApiResponse.of(communityPromptCommandService.updateCommunityPrompt(resolveOwnerMemberId(authentication), promptId, request));
 	}
 
 	@DeleteMapping("/{promptId}")
-	public ResponseEntity<Void> delete(Authentication authentication, @PathVariable Long promptId) {
-		communityPromptService.delete(ownerMemberId(authentication), promptId);
+	public ResponseEntity<Void> deleteCommunityPrompt(Authentication authentication, @PathVariable Long promptId) {
+		communityPromptCommandService.deleteCommunityPrompt(resolveOwnerMemberId(authentication), promptId);
 		return ResponseEntity.noContent().build();
 	}
 
-	private Long ownerMemberId(Authentication authentication) {
+	private Long resolveOwnerMemberId(Authentication authentication) {
 		return Long.valueOf(authentication.getName());
 	}
 }

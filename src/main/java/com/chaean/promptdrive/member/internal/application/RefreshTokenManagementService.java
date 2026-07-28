@@ -20,7 +20,7 @@ import com.chaean.promptdrive.member.internal.util.OAuthSecurityValueGenerator;
 
 @Service
 @RequiredArgsConstructor
-public class RefreshTokenService {
+public class RefreshTokenManagementService {
 
 	private final RefreshTokenRepository refreshTokenRepository;
 	private final JwtAccessTokenIssuer jwtAccessTokenIssuer;
@@ -29,19 +29,19 @@ public class RefreshTokenService {
 	private final SecureRandom secureRandom = new SecureRandom();
 
 	@Transactional
-	public TokenPairResponse issue(Member member) {
+	public TokenPairResponse issueRefreshToken(Member member) {
 		Instant now = Instant.now();
-		String rawToken = newToken();
-		refreshTokenRepository.save(new RefreshToken(member, UUID.randomUUID(), valueGenerator.sha256(rawToken), null,
+		String rawToken = generateRefreshTokenValue();
+		refreshTokenRepository.save(new RefreshToken(member, UUID.randomUUID(), valueGenerator.hashWithSha256(rawToken), null,
 				now.plus(properties.getRefreshTokenTtl())));
 
-		return TokenPairResponse.of(jwtAccessTokenIssuer.issue(member, now), rawToken, properties.getRefreshTokenTtl());
+		return TokenPairResponse.of(jwtAccessTokenIssuer.issueAccessToken(member, now), rawToken, properties.getRefreshTokenTtl());
 	}
 
 	@Transactional
-	public TokenPairResponse rotate(String rawToken) {
+	public TokenPairResponse rotateRefreshToken(String rawToken) {
 		Instant now = Instant.now();
-		RefreshToken current = refreshTokenRepository.findByTokenHash(valueGenerator.sha256(rawToken)).orElse(null);
+		RefreshToken current = refreshTokenRepository.findByTokenHash(valueGenerator.hashWithSha256(rawToken)).orElse(null);
 		if (current == null) {
 			return null;
 		}
@@ -50,33 +50,33 @@ public class RefreshTokenService {
 			if (current.getRevokedAt() != null) {
 				current.markReused(now);
 			}
-			revokeFamily(current.getFamilyId(), now);
+			revokeRefreshTokenFamily(current.getFamilyId(), now);
 			return null;
 		}
 
-		current.revoke(now);
-		String nextRawToken = newToken();
-		refreshTokenRepository.save(new RefreshToken(current.getMember(), current.getFamilyId(), valueGenerator.sha256(nextRawToken),
+		current.revokeRefreshToken(now);
+		String nextRawToken = generateRefreshTokenValue();
+		refreshTokenRepository.save(new RefreshToken(current.getMember(), current.getFamilyId(), valueGenerator.hashWithSha256(nextRawToken),
 				current.getId(), now.plus(properties.getRefreshTokenTtl())));
 
-		return TokenPairResponse.of(jwtAccessTokenIssuer.issue(current.getMember(), now), nextRawToken,
+		return TokenPairResponse.of(jwtAccessTokenIssuer.issueAccessToken(current.getMember(), now), nextRawToken,
 				properties.getRefreshTokenTtl());
 	}
 
 	@Transactional
-	public void revoke(String rawToken) {
+	public void revokeRefreshToken(String rawToken) {
 		if (rawToken == null || rawToken.isBlank()) {
 			return;
 		}
-		refreshTokenRepository.findByTokenHash(valueGenerator.sha256(rawToken)).ifPresent(token -> revokeFamily(token.getFamilyId(), Instant.now()));
+		refreshTokenRepository.findByTokenHash(valueGenerator.hashWithSha256(rawToken)).ifPresent(token -> revokeRefreshTokenFamily(token.getFamilyId(), Instant.now()));
 	}
 
-	private void revokeFamily(UUID familyId, Instant now) {
+	private void revokeRefreshTokenFamily(UUID familyId, Instant now) {
 		refreshTokenRepository.findAllByFamilyIdAndRevokedAtIsNull(familyId)
-				.forEach(token -> token.revoke(now));
+				.forEach(token -> token.revokeRefreshToken(now));
 	}
 
-	private String newToken() {
+	private String generateRefreshTokenValue() {
 		byte[] bytes = new byte[32];
 		secureRandom.nextBytes(bytes);
 		return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);

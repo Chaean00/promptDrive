@@ -52,4 +52,20 @@ public interface PromptRepository extends JpaRepository<Prompt, Long> {
 		ORDER BY p.createdAt DESC, p.id DESC
 		""")
 	Slice<Prompt> findCuratedPrompts(@Param("visibility") PromptVisibility visibility, Pageable pageable);
+
+	@Query("""
+		SELECT p AS prompt, COUNT(pl.id) AS likeCount
+		FROM Prompt p
+		LEFT JOIN PromptLike pl ON pl.prompt = p AND pl.deletedAt IS NULL
+		WHERE p.visibility = :visibility
+		AND p.deletedAt IS NULL
+		GROUP BY p
+		ORDER BY COUNT(pl.id) DESC, p.createdAt DESC, p.id DESC
+		""")
+	Slice<PromptRankingProjection> findPromptRankings(@Param("visibility") PromptVisibility visibility,
+		Pageable pageable);
+
+	default Slice<PromptRankingProjection> findPublicPromptRankings(Pageable pageable) {
+		return findPromptRankings(PromptVisibility.PUBLIC, pageable);
+	}
 }
