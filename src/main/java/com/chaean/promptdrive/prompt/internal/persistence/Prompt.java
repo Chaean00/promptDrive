@@ -73,7 +73,7 @@ public class Prompt extends BaseEntity {
 		this.content = Objects.requireNonNull(content);
 		this.provenance = Objects.requireNonNull(provenance);
 		this.visibility = Objects.requireNonNull(visibility);
-		if (provenance == PromptProvenance.CURATED && ownerMemberId != null) {
+		if ((provenance == PromptProvenance.CURATED && ownerMemberId != null) || (provenance == PromptProvenance.COMMUNITY && ownerMemberId == null)) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
 		this.ownerMemberId = ownerMemberId;
@@ -84,6 +84,10 @@ public class Prompt extends BaseEntity {
 	public static Prompt createCurated(String title, String content, PromptVisibility visibility,
 			String sourceName, String sourceUrl) {
 		return new Prompt(title, content, PromptProvenance.CURATED, visibility, null, sourceName, sourceUrl);
+	}
+
+	public static Prompt createCommunity(Long ownerMemberId, String title, String content) {
+		return new Prompt(title, content, PromptProvenance.COMMUNITY, PromptVisibility.PUBLIC, ownerMemberId, null, null);
 	}
 
 	public void updateCurated(String title, String content, String sourceName, String sourceUrl) {
@@ -104,9 +108,27 @@ public class Prompt extends BaseEntity {
 		delete();
 	}
 
+	public void updateCommunity(Long ownerMemberId, String title, String content) {
+		assertCommunityOwner(ownerMemberId);
+		this.title = Objects.requireNonNull(title);
+		this.content = Objects.requireNonNull(content);
+	}
+
+	public void deleteCommunity(Long ownerMemberId) {
+		assertCommunityOwner(ownerMemberId);
+		delete();
+	}
+
 	private void assertCurated() {
 		if (provenance != PromptProvenance.CURATED || ownerMemberId != null) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+		}
+	}
+
+	private void assertCommunityOwner(Long ownerMemberId) {
+		if (provenance != PromptProvenance.COMMUNITY || ownerMemberId == null
+			|| !Objects.equals(this.ownerMemberId, ownerMemberId)) {
+			throw new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND);
 		}
 	}
 }

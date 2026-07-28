@@ -39,10 +39,15 @@ public interface PromptRepository extends JpaRepository<Prompt, Long> {
 
 	Optional<Prompt> findByIdAndProvenance(Long id, PromptProvenance provenance);
 
+	Optional<Prompt> findByIdAndOwnerMemberIdAndProvenance(Long id, Long ownerMemberId, PromptProvenance provenance);
+
+	Slice<Prompt> findAllByOwnerMemberIdAndProvenanceOrderByCreatedAtDescIdDesc(Long ownerMemberId,
+		PromptProvenance provenance, Pageable pageable);
+
 	@Query("""
 		SELECT p
 		FROM Prompt p
-		WHERE p.provenance = com.chaean.promptdrive.prompt.internal.domain.PromptProvenance.CURATED
+		WHERE p.provenance = PromptProvenance.CURATED
 		AND (:visibility IS NULL OR p.visibility = :visibility)
 		ORDER BY p.createdAt DESC, p.id DESC
 		""")
