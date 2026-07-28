@@ -14,26 +14,26 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class SocialLoginMembershipService {
+public class FindOrCreateSocialLoginMemberService {
 
 	private final MemberRepository memberRepository;
 	private final SocialIdentityRepository socialIdentityRepository;
 
 	@Transactional
-	public Member findOrCreate(SocialIdentityProfileResponse profile) {
+	public Member findOrCreateSocialLoginMember(SocialIdentityProfileResponse profile) {
 		return socialIdentityRepository.findByProviderAndProviderUserId(profile.getProvider().name(), profile.getProviderUserId())
 				.map(SocialIdentity::getMember)
-				.orElseGet(() -> create(profile));
+				.orElseGet(() -> createMemberFromSocialProfile(profile));
 	}
 
-	private Member create(SocialIdentityProfileResponse profile) {
-		Member member = memberRepository.save(new Member(nickname(profile), MemberRole.MEMBER));
+	private Member createMemberFromSocialProfile(SocialIdentityProfileResponse profile) {
+		Member member = memberRepository.save(new Member(resolveMemberNickname(profile), MemberRole.MEMBER));
 		socialIdentityRepository.save(new SocialIdentity(member, profile.getProvider().name(), profile.getProviderUserId(),
 				profile.getVerifiedEmail()));
 		return member;
 	}
 
-	private String nickname(SocialIdentityProfileResponse profile) {
+	private String resolveMemberNickname(SocialIdentityProfileResponse profile) {
 		String value = profile.getDisplayName();
 		if (value == null || value.isBlank()) {
 			value = profile.getProvider().getCode() + "-" + profile.getProviderUserId();

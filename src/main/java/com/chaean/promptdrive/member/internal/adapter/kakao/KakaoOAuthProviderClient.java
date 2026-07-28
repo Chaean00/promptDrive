@@ -35,7 +35,7 @@ public class KakaoOAuthProviderClient implements OAuthProviderClient {
 	}
 
 	@Override
-	public String authorizationUri(String state, String codeChallenge, String nonce) {
+	public String createAuthorizationUri(String state, String codeChallenge, String nonce) {
 		OAuthProviderProperties provider = properties.getKakao();
 		properties.requireConfigured(provider);
 		return UriComponentsBuilder.fromUriString(provider.getAuthorizationUri())
@@ -50,7 +50,7 @@ public class KakaoOAuthProviderClient implements OAuthProviderClient {
 	}
 
 	@Override
-	public SocialIdentityProfileResponse authenticate(String authorizationCode, String pkceVerifier, String nonce) {
+	public SocialIdentityProfileResponse authenticateUser(String authorizationCode, String pkceVerifier, String nonce) {
 		OAuthProviderProperties provider = properties.getKakao();
 		properties.requireConfigured(provider);
 		MultiValueMap<String, String> form = new LinkedMultiValueMap<>();

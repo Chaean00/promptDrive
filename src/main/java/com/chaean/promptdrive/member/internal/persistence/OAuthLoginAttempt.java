@@ -63,7 +63,7 @@ public class OAuthLoginAttempt extends BaseEntity {
 		this.expiresAt = expiresAt;
 	}
 
-	public boolean consume(Instant now) {
+	public boolean consumeOAuthLoginAttempt(Instant now) {
 		if (consumedAt != null || !expiresAt.isAfter(now)) {
 			return false;
 		}

@@ -2,7 +2,7 @@ package com.chaean.promptdrive.prompt.internal.web.catalog;
 
 import com.chaean.promptdrive.common.web.response.ApiResponse;
 import com.chaean.promptdrive.common.web.response.SliceResponse;
-import com.chaean.promptdrive.prompt.internal.application.catalog.BrowsePromptService;
+import com.chaean.promptdrive.prompt.internal.application.catalog.FindPublicPromptCatalogService;
 import com.chaean.promptdrive.prompt.internal.application.catalog.GetPublicPromptService;
 import com.chaean.promptdrive.prompt.internal.domain.PromptCategoryType;
 import com.chaean.promptdrive.prompt.internal.domain.PromptProvenance;
@@ -22,22 +22,22 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PublicPromptController {
 
-	private final BrowsePromptService browsePromptService;
+	private final FindPublicPromptCatalogService findPublicPromptCatalogService;
 	private final GetPublicPromptService getPublicPromptService;
 
 	@GetMapping
-	public SliceResponse<PromptSummaryResponse> browse(
+	public SliceResponse<PromptSummaryResponse> listPublicPrompts(
 		@RequestParam(required = false) PromptProvenance provenance,
 		@RequestParam(required = false) PromptCategoryType category,
 		@RequestParam(defaultValue = "0") Integer page,
 		@RequestParam(defaultValue = "20") Integer size
 	) {
-		return browsePromptService.browse(provenance, category, page, size);
+		return findPublicPromptCatalogService.findPublicPromptSummaries(provenance, category, page, size);
 	}
 
 	@GetMapping("/{promptId}")
-	public ApiResponse<PromptDetailResponse> get(@PathVariable Long promptId) {
-		return ApiResponse.of(getPublicPromptService.get(promptId));
+	public ApiResponse<PromptDetailResponse> getPublicPrompt(@PathVariable Long promptId) {
+		return ApiResponse.of(getPublicPromptService.findPublicPrompt(promptId));
 	}
 
 }

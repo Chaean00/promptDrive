@@ -13,10 +13,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/prompt-categories")
-public class CategoryController {
+public class PromptCategoryController {
 
 	@GetMapping
-	public ApiResponse<List<EnumDisplayResponse>> list() {
+	public ApiResponse<List<EnumDisplayResponse>> listPromptCategories() {
 		return ApiResponse.of(Arrays.stream(PromptCategoryType.values()).map(EnumDisplayResponse::from).toList());
 	}
 }

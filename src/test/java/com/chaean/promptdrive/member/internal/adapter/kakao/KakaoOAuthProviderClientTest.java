@@ -45,7 +45,7 @@ class KakaoOAuthProviderClientTest {
 	@Test
 	@DisplayName("state와 PKCE를 포함하고 nonce는 포함하지 않은 Kakao 인증 URL을 생성한다")
 	void buildsAuthorizationUriWithStateAndPkce() {
-		String uri = client.authorizationUri("state", "challenge", "nonce");
+		String uri = client.createAuthorizationUri("state", "challenge", "nonce");
 
 		assertThat(uri).contains("client_id=kakao-client");
 		assertThat(uri).contains("state=state");
@@ -67,7 +67,7 @@ class KakaoOAuthProviderClientTest {
 				"{\"id\":\"kakao-user\",\"kakao_account\":{\"profile\":{\"nickname\":\"카카오 사용자\"},\"email\":\"user@example.com\",\"is_email_valid\":true,\"is_email_verified\":true}}",
 				MediaType.APPLICATION_JSON));
 
-		var profile = client.authenticate("authorization-code", "verifier", null);
+		var profile = client.authenticateUser("authorization-code", "verifier", null);
 
 		assertThat(profile.getProvider()).isEqualTo(SocialProvider.KAKAO);
 		assertThat(profile.getProviderUserId()).isEqualTo("kakao-user");

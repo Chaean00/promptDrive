@@ -59,7 +59,7 @@ class GoogleOAuthProviderClientTest {
 	@Test
 	@DisplayName("state·PKCE·nonce를 포함한 Google 인증 URL을 생성한다")
 	void buildsAuthorizationUriWithStatePkceAndNonce() {
-		String uri = client.authorizationUri("state", "challenge", "nonce");
+		String uri = client.createAuthorizationUri("state", "challenge", "nonce");
 
 		assertThat(uri).contains("client_id=google-client");
 		assertThat(uri).contains("redirect_uri=http://localhost:8080/api/auth/google/callback");
@@ -92,7 +92,7 @@ class GoogleOAuthProviderClientTest {
 				"{\"sub\":\"google-user\",\"name\":\"Google User\",\"email\":\"user@example.com\",\"email_verified\":true}",
 				MediaType.APPLICATION_JSON));
 
-		var profile = client.authenticate("authorization-code", "verifier", valueGenerator.sha256("nonce"));
+		var profile = client.authenticateUser("authorization-code", "verifier", valueGenerator.hashWithSha256("nonce"));
 
 		assertThat(profile.getProvider()).isEqualTo(SocialProvider.GOOGLE);
 		assertThat(profile.getProviderUserId()).isEqualTo("google-user");
@@ -115,7 +115,7 @@ class GoogleOAuthProviderClientTest {
 		server.expect(requestTo(TOKEN_URI)).andRespond(withSuccess(
 			"{\"access_token\":\"access-token\",\"id_token\":\"id-token\"}", MediaType.APPLICATION_JSON));
 
-		assertThatThrownBy(() -> client.authenticate("code", "verifier", valueGenerator.sha256("nonce")))
+		assertThatThrownBy(() -> client.authenticateUser("code", "verifier", valueGenerator.hashWithSha256("nonce")))
 			.isInstanceOf(BusinessException.class)
 			.extracting(exception -> ((BusinessException) exception).getErrorCode())
 			.isEqualTo(CommonErrorCode.EXTERNAL_SERVICE_ERROR);
@@ -135,7 +135,7 @@ class GoogleOAuthProviderClientTest {
 		server.expect(requestTo(TOKEN_URI)).andRespond(withSuccess(
 			"{\"access_token\":\"access-token\",\"id_token\":\"id-token\"}", MediaType.APPLICATION_JSON));
 
-		assertThatThrownBy(() -> client.authenticate("code", "verifier", valueGenerator.sha256("nonce")))
+		assertThatThrownBy(() -> client.authenticateUser("code", "verifier", valueGenerator.hashWithSha256("nonce")))
 			.isInstanceOf(BusinessException.class)
 			.extracting(exception -> ((BusinessException) exception).getErrorCode())
 			.isEqualTo(CommonErrorCode.EXTERNAL_SERVICE_ERROR);
@@ -157,7 +157,7 @@ class GoogleOAuthProviderClientTest {
 		server.expect(requestTo(USER_INFO_URI)).andRespond(withSuccess(
 			"{\"sub\":\"another-google-user\",\"email_verified\":true}", MediaType.APPLICATION_JSON));
 
-		assertThatThrownBy(() -> client.authenticate("code", "verifier", valueGenerator.sha256("nonce")))
+		assertThatThrownBy(() -> client.authenticateUser("code", "verifier", valueGenerator.hashWithSha256("nonce")))
 			.isInstanceOf(BusinessException.class)
 			.extracting(exception -> ((BusinessException) exception).getErrorCode())
 			.isEqualTo(CommonErrorCode.EXTERNAL_SERVICE_ERROR);

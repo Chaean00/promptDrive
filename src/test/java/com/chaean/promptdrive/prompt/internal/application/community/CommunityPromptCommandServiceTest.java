@@ -32,7 +32,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("커뮤니티 Prompt 관리 서비스")
-class MaintainCommunityPromptServiceTest {
+class CommunityPromptCommandServiceTest {
 
 	@Mock
 	private PromptRepository promptRepository;
@@ -40,11 +40,11 @@ class MaintainCommunityPromptServiceTest {
 	@Mock
 	private PromptCategoryRepository promptCategoryRepository;
 
-	private MaintainCommunityPromptService service;
+	private CommunityPromptCommandService service;
 
 	@BeforeEach
 	void setUp() {
-		service = new MaintainCommunityPromptService(promptRepository, promptCategoryRepository,
+		service = new CommunityPromptCommandService(promptRepository, promptCategoryRepository,
 			new PromptResponseMapper());
 	}
 
@@ -54,7 +54,7 @@ class MaintainCommunityPromptServiceTest {
 		when(promptRepository.save(any(Prompt.class))).thenAnswer(invocation -> invocation.getArgument(0));
 		when(promptCategoryRepository.findAllByPromptId(null)).thenReturn(List.of());
 
-		service.create(1L, new CreateCommunityPromptRequest("title", "content", List.of(PromptCategoryType.DEVELOPMENT)));
+		service.createCommunityPrompt(1L, new CreateCommunityPromptRequest("title", "content", List.of(PromptCategoryType.DEVELOPMENT)));
 
 		org.mockito.ArgumentCaptor<Prompt> promptCaptor = org.mockito.ArgumentCaptor.forClass(Prompt.class);
 		verify(promptRepository).save(promptCaptor.capture());
@@ -69,7 +69,7 @@ class MaintainCommunityPromptServiceTest {
 		CreateCommunityPromptRequest request = new CreateCommunityPromptRequest("title", "content",
 			List.of(PromptCategoryType.DEVELOPMENT, PromptCategoryType.DEVELOPMENT));
 
-		assertThatThrownBy(() -> service.create(1L, request))
+		assertThatThrownBy(() -> service.createCommunityPrompt(1L, request))
 			.isInstanceOf(BusinessException.class)
 			.satisfies(exception -> assertThat(((BusinessException) exception).getErrorCode())
 				.isEqualTo(CommonErrorCode.INVALID_REQUEST));
@@ -82,7 +82,7 @@ class MaintainCommunityPromptServiceTest {
 		when(promptRepository.findByIdAndOwnerMemberIdAndProvenance(1L, 2L, PromptProvenance.COMMUNITY))
 			.thenReturn(Optional.empty());
 
-		assertThatThrownBy(() -> service.get(2L, 1L))
+		assertThatThrownBy(() -> service.getOwnedCommunityPrompt(2L, 1L))
 			.isInstanceOf(BusinessException.class)
 			.satisfies(exception -> assertThat(((BusinessException) exception).getErrorCode())
 				.isEqualTo(CommonErrorCode.RESOURCE_NOT_FOUND));
@@ -91,14 +91,14 @@ class MaintainCommunityPromptServiceTest {
 	@Test
 	@DisplayName("기존 category는 유지하고 새 category만 추가해 수정한다")
 	void updatesByCategorySetDifference() {
-		Prompt prompt = Prompt.createCommunity(1L, "title", "content");
-		PromptCategory existing = PromptCategory.create(prompt, PromptCategoryType.DEVELOPMENT);
-		PromptCategory removed = PromptCategory.create(prompt, PromptCategoryType.CODE_REVIEW);
+		Prompt prompt = Prompt.createCommunityPrompt(1L, "title", "content");
+		PromptCategory existing = PromptCategory.createPromptCategory(prompt, PromptCategoryType.DEVELOPMENT);
+		PromptCategory removed = PromptCategory.createPromptCategory(prompt, PromptCategoryType.CODE_REVIEW);
 		when(promptRepository.findByIdAndOwnerMemberIdAndProvenance(1L, 1L, PromptProvenance.COMMUNITY))
 			.thenReturn(Optional.of(prompt));
 		when(promptCategoryRepository.findAllByPromptId(1L)).thenReturn(List.of(existing, removed));
 
-		service.update(1L, 1L, new UpdateCommunityPromptRequest("updated", "new content",
+		service.updateCommunityPrompt(1L, 1L, new UpdateCommunityPromptRequest("updated", "new content",
 			List.of(PromptCategoryType.DEVELOPMENT, PromptCategoryType.TESTING)));
 
 		assertThat(existing.getDeletedAt()).isNull();
@@ -110,13 +110,13 @@ class MaintainCommunityPromptServiceTest {
 	@Test
 	@DisplayName("Prompt와 활성 category를 함께 soft delete한다")
 	void softDeletesOwnedPromptAndCategories() {
-		Prompt prompt = Prompt.createCommunity(1L, "title", "content");
-		PromptCategory category = PromptCategory.create(prompt, PromptCategoryType.DEVELOPMENT);
+		Prompt prompt = Prompt.createCommunityPrompt(1L, "title", "content");
+		PromptCategory category = PromptCategory.createPromptCategory(prompt, PromptCategoryType.DEVELOPMENT);
 		when(promptRepository.findByIdAndOwnerMemberIdAndProvenance(1L, 1L, PromptProvenance.COMMUNITY))
 			.thenReturn(Optional.of(prompt));
 		when(promptCategoryRepository.findAllByPromptId(1L)).thenReturn(List.of(category));
 
-		service.delete(1L, 1L);
+		service.deleteCommunityPrompt(1L, 1L);
 
 		assertThat(prompt.getDeletedAt()).isNotNull();
 		assertThat(category.getDeletedAt()).isNotNull();
@@ -125,7 +125,7 @@ class MaintainCommunityPromptServiceTest {
 	@Test
 	@DisplayName("잘못된 page 범위를 비즈니스 오류로 거부한다")
 	void rejectsInvalidPageBounds() {
-		assertThatThrownBy(() -> service.browse(1L, -1, 20))
+		assertThatThrownBy(() -> service.findOwnedCommunityPromptSummaries(1L, -1, 20))
 			.isInstanceOf(BusinessException.class)
 			.satisfies(exception -> assertThat(((BusinessException) exception).getErrorCode())
 				.isEqualTo(CommonErrorCode.INVALID_REQUEST));

@@ -30,52 +30,52 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(BusinessException.class)
 	public ResponseEntity<ApiErrorResponse> handleBusinessException(BusinessException exception,
 			HttpServletRequest request) {
-		return error(exception.getErrorCode(), request, List.of());
+		return buildErrorResponse(exception.getErrorCode(), request, List.of());
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<ApiErrorResponse> handleMethodArgumentNotValidException(
 			MethodArgumentNotValidException exception, HttpServletRequest request) {
-		return validationError(exception.getBindingResult().getFieldErrors(), request);
+		return buildValidationErrorResponse(exception.getBindingResult().getFieldErrors(), request);
 	}
 
 	@ExceptionHandler(BindException.class)
 	public ResponseEntity<ApiErrorResponse> handleBindException(BindException exception, HttpServletRequest request) {
-		return validationError(exception.getBindingResult().getFieldErrors(), request);
+		return buildValidationErrorResponse(exception.getBindingResult().getFieldErrors(), request);
 	}
 
 	@ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
 	public ResponseEntity<ApiErrorResponse> handleInvalidRequest(Exception exception, HttpServletRequest request) {
-		return error(CommonErrorCode.INVALID_REQUEST, request, List.of());
+		return buildErrorResponse(CommonErrorCode.INVALID_REQUEST, request, List.of());
 	}
 
 	@ExceptionHandler(NoResourceFoundException.class)
 	public ResponseEntity<ApiErrorResponse> handleNoResourceFoundException(NoResourceFoundException exception,
 			HttpServletRequest request) {
-		return error(CommonErrorCode.RESOURCE_NOT_FOUND, request, List.of());
+		return buildErrorResponse(CommonErrorCode.RESOURCE_NOT_FOUND, request, List.of());
 	}
 
 	@ExceptionHandler(HttpRequestMethodNotSupportedException.class)
 	public ResponseEntity<ApiErrorResponse> handleHttpRequestMethodNotSupportedException(
 			HttpRequestMethodNotSupportedException exception, HttpServletRequest request) {
-		return error(CommonErrorCode.METHOD_NOT_ALLOWED, request, List.of());
+		return buildErrorResponse(CommonErrorCode.METHOD_NOT_ALLOWED, request, List.of());
 	}
 
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ApiErrorResponse> handleUnexpectedException(Exception exception, HttpServletRequest request) {
 		log.error("Unhandled exception for {}", request.getRequestURI(), exception);
-		return error(CommonErrorCode.INTERNAL_SERVER_ERROR, request, List.of());
+		return buildErrorResponse(CommonErrorCode.INTERNAL_SERVER_ERROR, request, List.of());
 	}
 
-	private ResponseEntity<ApiErrorResponse> validationError(
+	private ResponseEntity<ApiErrorResponse> buildValidationErrorResponse(
 			List<org.springframework.validation.FieldError> fieldErrors, HttpServletRequest request) {
 		List<FieldErrorResponse> errors = fieldErrors.stream()
 			.map(fieldError -> FieldErrorResponse.of(fieldError.getField(), fieldError.getDefaultMessage()))
 			.toList();
-		return error(CommonErrorCode.VALIDATION_ERROR, request, errors);
+		return buildErrorResponse(CommonErrorCode.VALIDATION_ERROR, request, errors);
 	}
 
-	private ResponseEntity<ApiErrorResponse> error(ErrorCode errorCode, HttpServletRequest request,
+	private ResponseEntity<ApiErrorResponse> buildErrorResponse(ErrorCode errorCode, HttpServletRequest request,
 			List<FieldErrorResponse> fieldErrors) {
 		ApiErrorResponse response = ApiErrorResponse.of(
 			errorCode.getStatus().value(),

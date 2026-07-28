@@ -75,7 +75,7 @@ public class RefreshToken extends BaseEntity {
 		return revokedAt == null && expiresAt.isAfter(now);
 	}
 
-	public void revoke(Instant now) {
+	public void revokeRefreshToken(Instant now) {
 		revokedAt = now;
 	}
 

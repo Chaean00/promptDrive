@@ -31,13 +31,13 @@ public class SecurityConfig {
 	@Bean
 	@Conditional(JwtSigningKeyCondition.class)
 	public JwtEncoder jwtEncoder(JwtSigningKeyFactory jwtSigningKeyFactory, JwtProperties properties) {
-		return new NimbusJwtEncoder(new ImmutableSecret<SecurityContext>(jwtSigningKeyFactory.create(properties.getSigningKey())));
+		return new NimbusJwtEncoder(new ImmutableSecret<SecurityContext>(jwtSigningKeyFactory.createSigningKey(properties.getSigningKey())));
 	}
 
 	@Bean
 	@Conditional(JwtSigningKeyCondition.class)
 	public JwtDecoder jwtDecoder(JwtSigningKeyFactory jwtSigningKeyFactory, JwtProperties properties) {
-		NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(jwtSigningKeyFactory.create(properties.getSigningKey())).build();
+		NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(jwtSigningKeyFactory.createSigningKey(properties.getSigningKey())).build();
 		decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
 				JwtValidators.createDefaultWithIssuer(properties.getIssuer()), new JwtAudienceValidator(properties.getAudience()),
 				new AccessTokenTypeValidator()));

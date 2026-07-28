@@ -20,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class BrowsePromptService {
+public class FindPublicPromptCatalogService {
 
 	private static final int DEFAULT_PAGE = 0;
 	private static final int DEFAULT_SIZE = 20;
@@ -30,22 +30,22 @@ public class BrowsePromptService {
 	private final PromptCategoryRepository promptCategoryRepository;
 	private final PromptResponseMapper responseMapper;
 
-	public SliceResponse<PromptSummaryResponse> browse(PromptProvenance provenance, PromptCategoryType category,
+	public SliceResponse<PromptSummaryResponse> findPublicPromptSummaries(PromptProvenance provenance, PromptCategoryType category,
 		Integer page, Integer size) {
 		int resolvedPage = page == null ? DEFAULT_PAGE : page;
 		int resolvedSize = size == null ? DEFAULT_SIZE : size;
-		validatePage(resolvedPage, resolvedSize);
+		validatePageRequest(resolvedPage, resolvedSize);
 		Slice<Prompt> prompts = promptRepository.findPublicPrompts(provenance, category,
 			PageRequest.of(resolvedPage, resolvedSize));
 		if (prompts.isEmpty()) {
-			return SliceResponse.from(responseMapper.toSummarySlice(prompts, List.of()));
+			return SliceResponse.from(responseMapper.toPromptSummaryResponseSlice(prompts, List.of()));
 		}
 		var ids = prompts.getContent().stream().map(Prompt::getId).toList();
 		var categories = promptCategoryRepository.findAllByPromptIdIn(ids);
-		return SliceResponse.from(responseMapper.toSummarySlice(prompts, categories));
+		return SliceResponse.from(responseMapper.toPromptSummaryResponseSlice(prompts, categories));
 	}
 
-	private void validatePage(int page, int size) {
+	private void validatePageRequest(int page, int size) {
 		if (page < 0 || size < 1 || size > MAX_SIZE) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}

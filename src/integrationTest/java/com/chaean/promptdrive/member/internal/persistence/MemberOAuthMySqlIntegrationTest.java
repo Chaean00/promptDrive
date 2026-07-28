@@ -20,8 +20,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import com.chaean.promptdrive.common.web.error.CommonErrorCode;
 import com.chaean.promptdrive.common.web.error.exception.BusinessException;
-import com.chaean.promptdrive.member.internal.application.OAuthLoginAttemptService;
-import com.chaean.promptdrive.member.internal.application.RefreshTokenService;
+import com.chaean.promptdrive.member.internal.application.ConsumeOAuthLoginAttemptService;
+import com.chaean.promptdrive.member.internal.application.RefreshTokenManagementService;
 import com.chaean.promptdrive.member.internal.domain.MemberRole;
 import com.chaean.promptdrive.member.internal.domain.SocialProvider;
 import com.chaean.promptdrive.member.internal.dto.TokenPairResponse;
@@ -48,13 +48,13 @@ class MemberOAuthMySqlIntegrationTest {
 	private OAuthLoginAttemptRepository loginAttemptRepository;
 
 	@Autowired
-	private OAuthLoginAttemptService loginAttemptService;
+	private ConsumeOAuthLoginAttemptService consumeOAuthLoginAttemptService;
 
 	@Autowired
 	private MemberRepository memberRepository;
 
 	@Autowired
-	private RefreshTokenService refreshTokenService;
+	private RefreshTokenManagementService refreshTokenManagementService;
 
 	@Autowired
 	private OAuthSecurityValueGenerator valueGenerator;
@@ -70,10 +70,10 @@ class MemberOAuthMySqlIntegrationTest {
 				SocialProvider.GOOGLE, stateHash, "encrypted-verifier", "nonce-hash", "/",
 				Instant.now().plusSeconds(300)));
 
-		OAuthLoginAttempt consumed = loginAttemptService.consume(SocialProvider.GOOGLE, stateHash);
+		OAuthLoginAttempt consumed = consumeOAuthLoginAttemptService.consumeOAuthLoginAttempt(SocialProvider.GOOGLE, stateHash);
 
 		assertThat(consumed.getConsumedAt()).isNotNull();
-		assertThatThrownBy(() -> loginAttemptService.consume(SocialProvider.GOOGLE, stateHash))
+		assertThatThrownBy(() -> consumeOAuthLoginAttemptService.consumeOAuthLoginAttempt(SocialProvider.GOOGLE, stateHash))
 				.isInstanceOf(BusinessException.class)
 				.extracting(exception -> ((BusinessException) exception).getErrorCode())
 				.isEqualTo(CommonErrorCode.UNAUTHORIZED_REQUEST);
@@ -84,15 +84,15 @@ class MemberOAuthMySqlIntegrationTest {
 	void persistsHashedRefreshTokensAndRevokesTheTokenFamilyOnReuse() {
 		Member member = memberRepository.saveAndFlush(new Member("oauth-integration-" + uniqueValue(), MemberRole.MEMBER));
 
-		TokenPairResponse first = refreshTokenService.issue(member);
-		String firstHash = valueGenerator.sha256(first.getRefreshToken());
+		TokenPairResponse first = refreshTokenManagementService.issueRefreshToken(member);
+		String firstHash = valueGenerator.hashWithSha256(first.getRefreshToken());
 
 		assertThat(jdbcTemplate.queryForObject(
 				"select count(*) from refresh_token where token_hash = ?", Integer.class, firstHash)).isEqualTo(1);
 		assertThat(jdbcTemplate.queryForObject(
 				"select count(*) from refresh_token where token_hash = ?", Integer.class, first.getRefreshToken())).isZero();
 
-		TokenPairResponse next = refreshTokenService.rotate(first.getRefreshToken());
+		TokenPairResponse next = refreshTokenManagementService.rotateRefreshToken(first.getRefreshToken());
 		assertThat(next).isNotNull();
 
 		String familyId = jdbcTemplate.queryForObject(
@@ -101,7 +101,7 @@ class MemberOAuthMySqlIntegrationTest {
 				"select case when revoked_at is null then 0 else 1 end from refresh_token where token_hash = ?",
 				Integer.class, firstHash)).isEqualTo(1);
 
-		assertThat(refreshTokenService.rotate(first.getRefreshToken())).isNull();
+		assertThat(refreshTokenManagementService.rotateRefreshToken(first.getRefreshToken())).isNull();
 		assertThat(jdbcTemplate.queryForObject(
 				"select case when reused_at is null then 0 else 1 end from refresh_token where token_hash = ?",
 				Integer.class, firstHash)).isEqualTo(1);
