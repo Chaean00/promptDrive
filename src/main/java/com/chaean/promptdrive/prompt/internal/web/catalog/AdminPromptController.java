@@ -39,7 +39,7 @@ public class AdminPromptController {
 		@RequestParam(defaultValue = "0") Integer page,
 		@RequestParam(defaultValue = "20") Integer size
 	) {
-		return curatedPromptCommandService.findCuratedPromptSummaries(visibility, page, size);
+		return curatedPromptCommandService.getCuratedPromptPage(visibility, page, size);
 	}
 
 	@GetMapping("/{promptId}")

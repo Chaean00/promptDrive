@@ -14,13 +14,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class FindOrCreateSocialLoginMemberService {
+public class SocialLoginMemberCommandService {
 
 	private final MemberRepository memberRepository;
 	private final SocialIdentityRepository socialIdentityRepository;
 
 	@Transactional
-	public Member findOrCreateSocialLoginMember(SocialIdentityProfileResponse profile) {
+	public Member getOrCreateSocialLoginMember(SocialIdentityProfileResponse profile) {
 		return socialIdentityRepository.findByProviderAndProviderUserId(profile.getProvider().name(), profile.getProviderUserId())
 				.map(SocialIdentity::getMember)
 				.orElseGet(() -> createMemberFromSocialProfile(profile));

@@ -45,8 +45,10 @@ public class OAuthAuthenticationController {
 	private final JwtProperties jwtProperties;
 
 	@GetMapping("/{provider}/start")
-	public ResponseEntity<Void> startOAuthLogin(@PathVariable String provider,
-			@RequestParam(required = false) String returnPath) {
+	public ResponseEntity<Void> startOAuthLogin(
+			@PathVariable String provider,
+			@RequestParam(required = false) String returnPath
+	) {
 		OAuthLoginStartResponse loginStart = oauthAuthenticationService.startOAuthLogin(parseSocialProvider(provider), returnPath);
 		return ResponseEntity.status(HttpStatus.FOUND).header(HttpHeaders.LOCATION, loginStart.getAuthorizationUri())
 				.header(HttpHeaders.SET_COOKIE, loginStateCookie(loginStart.getState()).toString()).build();
@@ -58,10 +60,13 @@ public class OAuthAuthenticationController {
 	}
 
 	@GetMapping("/{provider}/callback")
-	public ResponseEntity<AuthTokenResponse> completeOAuthLogin(@PathVariable String provider,
-			@RequestParam(required = false) String code, @RequestParam(required = false) String state,
+	public ResponseEntity<AuthTokenResponse> completeOAuthLogin(
+			@PathVariable String provider,
+			@RequestParam(required = false) String code,
+			@RequestParam(required = false) String state,
 			@RequestParam(required = false) String error,
-			@CookieValue(name = LOGIN_STATE_COOKIE_NAME, required = false) String browserState) {
+			@CookieValue(name = LOGIN_STATE_COOKIE_NAME, required = false) String browserState
+	) {
 		SocialProvider socialProvider = parseSocialProvider(provider);
 		if (state == null || !state.equals(browserState)) {
 			throw new BusinessException(CommonErrorCode.UNAUTHORIZED_REQUEST);
@@ -79,7 +84,8 @@ public class OAuthAuthenticationController {
 	@PostMapping("/refresh")
 	public ResponseEntity<AuthTokenResponse> refreshAccessToken(
 			@CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshToken,
-			HttpServletRequest request) {
+			HttpServletRequest request
+	) {
 		originValidator.requireAllowedOrigin(request);
 		if (refreshToken == null || refreshToken.isBlank()) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).header(HttpHeaders.SET_COOKIE, deleteRefreshCookie().toString()).build();
@@ -93,8 +99,10 @@ public class OAuthAuthenticationController {
 	}
 
 	@PostMapping("/refresh/logout")
-	public ResponseEntity<Void> logoutMember(@CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshToken,
-			HttpServletRequest request) {
+	public ResponseEntity<Void> logoutMember(
+			@CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshToken,
+			HttpServletRequest request
+	) {
 		originValidator.requireAllowedOrigin(request);
 		refreshTokenManagementService.revokeRefreshToken(refreshToken);
 		return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, deleteRefreshCookie().toString()).build();

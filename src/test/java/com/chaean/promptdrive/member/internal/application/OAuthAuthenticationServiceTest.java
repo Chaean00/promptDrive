@@ -34,7 +34,7 @@ class OAuthAuthenticationServiceTest {
 	private final OAuthProviderClient providerClient = mock(OAuthProviderClient.class);
 	private final OAuthLoginAttemptRepository attemptRepository = mock(OAuthLoginAttemptRepository.class);
 	private final ConsumeOAuthLoginAttemptService attemptService = mock(ConsumeOAuthLoginAttemptService.class);
-	private final FindOrCreateSocialLoginMemberService membershipService = mock(FindOrCreateSocialLoginMemberService.class);
+	private final SocialLoginMemberCommandService membershipService = mock(SocialLoginMemberCommandService.class);
 	private final PkceStateCipher stateCipher = mock(PkceStateCipher.class);
 	private final RefreshTokenManagementService refreshTokenManagementService = mock(RefreshTokenManagementService.class);
 	private final MemberOAuthProperties properties = new MemberOAuthProperties();
@@ -100,7 +100,7 @@ class OAuthAuthenticationServiceTest {
 		given(attemptService.consumeOAuthLoginAttempt(SocialProvider.GOOGLE, "state-hash")).willReturn(attempt);
 		given(stateCipher.decryptPkceVerifier("encrypted-verifier")).willReturn("verifier");
 		given(providerClient.authenticateUser("authorization-code", "verifier", "nonce-hash")).willReturn(profile);
-		given(membershipService.findOrCreateSocialLoginMember(profile)).willReturn(member);
+		given(membershipService.getOrCreateSocialLoginMember(profile)).willReturn(member);
 		given(refreshTokenManagementService.issueRefreshToken(member)).willReturn(tokens);
 
 		OAuthLoginResponse response = service.completeOAuthLogin(SocialProvider.GOOGLE, "authorization-code", "state");

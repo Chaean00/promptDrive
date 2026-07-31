@@ -1,7 +1,7 @@
 package com.chaean.promptdrive.prompt.internal.web.ranking;
 
 import com.chaean.promptdrive.common.web.response.SliceResponse;
-import com.chaean.promptdrive.prompt.internal.application.ranking.FindPromptRankingService;
+import com.chaean.promptdrive.prompt.internal.application.ranking.PromptRankingQueryService;
 import com.chaean.promptdrive.prompt.internal.dto.PromptRankingResponse;
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,13 +16,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PromptRankingController {
 
-	private final FindPromptRankingService findPromptRankingService;
+	private final PromptRankingQueryService promptRankingQueryService;
 
 	@GetMapping
 	public SliceResponse<PromptRankingResponse> getPromptRankings(
 		@RequestParam(defaultValue = "0") Integer page,
 		@RequestParam(defaultValue = "20") Integer size
 	) {
-		return findPromptRankingService.findPromptRankings(page, size);
+		return promptRankingQueryService.getPromptRankings(page, size);
 	}
 }

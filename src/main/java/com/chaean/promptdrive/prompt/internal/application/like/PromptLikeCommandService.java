@@ -24,22 +24,22 @@ public class PromptLikeCommandService {
 
 	@Transactional(isolation = Isolation.READ_COMMITTED)
 	public PromptLikeResponse registerPromptLike(Long memberId, Long promptId) {
-		findPublicPrompt(promptId);
+		promptRepository.findByIdAndVisibility(promptId, PromptVisibility.PUBLIC)
+				.orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND));
+
 		if (promptLikeRepository.reactivateLatestDeletedByPromptIdAndMemberId(promptId, memberId) == 0) {
 			promptLikeRepository.insertIfAbsent(promptId, memberId);
 		}
+
 		return PromptLikeResponse.of(promptId, true);
 	}
 
 	@Transactional
 	public PromptLikeResponse removePromptLike(Long memberId, Long promptId) {
-		findPublicPrompt(promptId);
+		promptRepository.findByIdAndVisibility(promptId, PromptVisibility.PUBLIC)
+				.orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND));
+
 		promptLikeRepository.findByPromptIdAndMemberId(promptId, memberId).ifPresent(PromptLike::softDelete);
 		return PromptLikeResponse.of(promptId, false);
-	}
-
-	private Prompt findPublicPrompt(Long promptId) {
-		return promptRepository.findByIdAndVisibility(promptId, PromptVisibility.PUBLIC)
-			.orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND));
 	}
 }

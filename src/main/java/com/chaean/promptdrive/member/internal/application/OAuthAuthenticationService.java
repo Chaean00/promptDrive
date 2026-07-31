@@ -31,20 +31,20 @@ public class OAuthAuthenticationService {
 	private final Map<SocialProvider, OAuthProviderClient> providerClients;
 	private final OAuthLoginAttemptRepository loginAttemptRepository;
 	private final ConsumeOAuthLoginAttemptService consumeOAuthLoginAttemptService;
-	private final FindOrCreateSocialLoginMemberService findOrCreateSocialLoginMemberService;
+	private final SocialLoginMemberCommandService socialLoginMemberCommandService;
 	private final PkceStateCipher pkceStateCipher;
 	private final RefreshTokenManagementService refreshTokenManagementService;
 	private final MemberOAuthProperties properties;
 	private final OAuthSecurityValueGenerator valueGenerator;
 
 	public OAuthAuthenticationService(List<OAuthProviderClient> providerClients, OAuthLoginAttemptRepository loginAttemptRepository,
-			ConsumeOAuthLoginAttemptService consumeOAuthLoginAttemptService, FindOrCreateSocialLoginMemberService findOrCreateSocialLoginMemberService, PkceStateCipher pkceStateCipher,
+			ConsumeOAuthLoginAttemptService consumeOAuthLoginAttemptService, SocialLoginMemberCommandService socialLoginMemberCommandService, PkceStateCipher pkceStateCipher,
 			RefreshTokenManagementService refreshTokenManagementService, MemberOAuthProperties properties, OAuthSecurityValueGenerator valueGenerator) {
 		this.providerClients = new EnumMap<>(SocialProvider.class);
 		providerClients.forEach(client -> this.providerClients.put(client.provider(), client));
 		this.loginAttemptRepository = loginAttemptRepository;
 		this.consumeOAuthLoginAttemptService = consumeOAuthLoginAttemptService;
-		this.findOrCreateSocialLoginMemberService = findOrCreateSocialLoginMemberService;
+		this.socialLoginMemberCommandService = socialLoginMemberCommandService;
 		this.pkceStateCipher = pkceStateCipher;
 		this.refreshTokenManagementService = refreshTokenManagementService;
 		this.properties = properties;
@@ -73,7 +73,7 @@ public class OAuthAuthenticationService {
 		OAuthLoginAttempt attempt = consumeOAuthLoginAttemptService.consumeOAuthLoginAttempt(provider, valueGenerator.hashWithSha256(state));
 		String verifier = pkceStateCipher.decryptPkceVerifier(attempt.getEncryptedPkceVerifier());
 		SocialIdentityProfileResponse profile = requireProviderClient(provider).authenticateUser(authorizationCode, verifier, attempt.getNonceHash());
-		Member member = findOrCreateSocialLoginMemberService.findOrCreateSocialLoginMember(profile);
+		Member member = socialLoginMemberCommandService.getOrCreateSocialLoginMember(profile);
 
 		return OAuthLoginResponse.of(refreshTokenManagementService.issueRefreshToken(member), attempt.getReturnPath());
 	}

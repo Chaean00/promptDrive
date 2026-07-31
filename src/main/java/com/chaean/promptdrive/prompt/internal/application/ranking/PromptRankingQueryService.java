@@ -8,7 +8,7 @@ import com.chaean.promptdrive.common.web.response.SliceResponse;
 import com.chaean.promptdrive.prompt.internal.application.catalog.PromptResponseMapper;
 import com.chaean.promptdrive.prompt.internal.dto.PromptRankingResponse;
 import com.chaean.promptdrive.prompt.internal.persistence.PromptCategoryRepository;
-import com.chaean.promptdrive.prompt.internal.persistence.PromptRankingProjection;
+import com.chaean.promptdrive.prompt.internal.persistence.projection.PromptRankingProjection;
 import com.chaean.promptdrive.prompt.internal.persistence.PromptRepository;
 
 import org.springframework.data.domain.PageRequest;
@@ -19,7 +19,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class FindPromptRankingService {
+public class PromptRankingQueryService {
 
 	private static final int DEFAULT_PAGE = 0;
 	private static final int DEFAULT_SIZE = 20;
@@ -29,7 +29,7 @@ public class FindPromptRankingService {
 	private final PromptCategoryRepository promptCategoryRepository;
 	private final PromptResponseMapper responseMapper;
 
-	public SliceResponse<PromptRankingResponse> findPromptRankings(Integer page, Integer size) {
+	public SliceResponse<PromptRankingResponse> getPromptRankings(Integer page, Integer size) {
 		int resolvedPage = page == null ? DEFAULT_PAGE : page;
 		int resolvedSize = size == null ? DEFAULT_SIZE : size;
 		validatePageRequest(resolvedPage, resolvedSize);
