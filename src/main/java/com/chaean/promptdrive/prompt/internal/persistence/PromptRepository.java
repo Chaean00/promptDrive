@@ -1,7 +1,9 @@
 package com.chaean.promptdrive.prompt.internal.persistence;
 
+import com.chaean.promptdrive.prompt.internal.persistence.projection.PromptRankingProjection;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,20 +21,28 @@ public interface PromptRepository extends JpaRepository<Prompt, Long> {
 			FROM Prompt p
 			WHERE p.visibility = :visibility
 			AND (:provenance IS NULL OR p.provenance = :provenance)
+			AND (:keyword IS NULL OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+				OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%')))
 			AND (:category IS NULL OR exists (
 				SELECT pc.id
 				FROM PromptCategory pc
 				WHERE pc.prompt = p
 				AND pc.category = :category
 			))
-			ORDER BY p.createdAt DESC, p.id DESC
+			ORDER BY p.createdAt DESC, p.title ASC
 			""")
-	Slice<Prompt> findPublicPrompts(@Param("visibility") PromptVisibility visibility,
+	Page<Prompt> findPublicPrompts(@Param("visibility") PromptVisibility visibility,
 			@Param("provenance") PromptProvenance provenance,
-			@Param("category") PromptCategoryType category, Pageable pageable);
+			@Param("category") PromptCategoryType category,
+			@Param("keyword") String keyword, Pageable pageable);
 
-	default Slice<Prompt> findPublicPrompts(PromptProvenance provenance, PromptCategoryType category, Pageable pageable) {
-		return findPublicPrompts(PromptVisibility.PUBLIC, provenance, category, pageable);
+	default Page<Prompt> findPublicPrompts(PromptProvenance provenance, PromptCategoryType category, Pageable pageable) {
+		return findPublicPrompts(provenance, category, null, pageable);
+	}
+
+	default Page<Prompt> findPublicPrompts(PromptProvenance provenance, PromptCategoryType category,
+		String keyword, Pageable pageable) {
+		return findPublicPrompts(PromptVisibility.PUBLIC, provenance, category, keyword, pageable);
 	}
 
 	Optional<Prompt> findByIdAndVisibility(Long id, PromptVisibility visibility);
