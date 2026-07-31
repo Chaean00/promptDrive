@@ -15,14 +15,13 @@ import com.chaean.promptdrive.prompt.internal.application.catalog.PromptResponse
 import com.chaean.promptdrive.prompt.internal.domain.PromptProvenance;
 import com.chaean.promptdrive.prompt.internal.persistence.Prompt;
 import com.chaean.promptdrive.prompt.internal.persistence.PromptCategoryRepository;
-import com.chaean.promptdrive.prompt.internal.persistence.PromptRankingProjection;
+import com.chaean.promptdrive.prompt.internal.persistence.projection.PromptRankingProjection;
 import com.chaean.promptdrive.prompt.internal.persistence.PromptRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
@@ -30,7 +29,7 @@ import org.springframework.data.domain.SliceImpl;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Prompt ranking 조회 서비스")
-class FindPromptRankingServiceTest {
+class PromptRankingQueryServiceTest {
 
 	@Mock
 	private PromptRepository promptRepository;
@@ -38,11 +37,11 @@ class FindPromptRankingServiceTest {
 	@Mock
 	private PromptCategoryRepository promptCategoryRepository;
 
-	private FindPromptRankingService service;
+	private PromptRankingQueryService service;
 
 	@BeforeEach
 	void setUp() {
-		service = new FindPromptRankingService(promptRepository, promptCategoryRepository,
+		service = new PromptRankingQueryService(promptRepository, promptCategoryRepository,
 			new PromptResponseMapper());
 	}
 
@@ -55,7 +54,7 @@ class FindPromptRankingServiceTest {
 			.thenReturn(new SliceImpl<>(List.of(first, second), PageRequest.of(0, 20), true));
 		when(promptCategoryRepository.findAllByPromptIdIn(List.of(1L, 2L))).thenReturn(List.of());
 
-		var response = service.findPromptRankings(null, null);
+		var response = service.getPromptRankings(null, null);
 
 		assertThat(response.getPage()).isZero();
 		assertThat(response.getSize()).isEqualTo(20);
@@ -72,7 +71,7 @@ class FindPromptRankingServiceTest {
 		when(promptRepository.findPublicPromptRankings(PageRequest.of(2, 3)))
 			.thenReturn(new SliceImpl<>(List.<PromptRankingProjection>of(), PageRequest.of(2, 3), false));
 
-		var response = service.findPromptRankings(2, 3);
+		var response = service.getPromptRankings(2, 3);
 
 		assertThat(response.getPage()).isEqualTo(2);
 		assertThat(response.getSize()).isEqualTo(3);
@@ -86,7 +85,7 @@ class FindPromptRankingServiceTest {
 			new Integer[] {-1, 1},
 			new Integer[] {0, 0},
 			new Integer[] {0, 101})) {
-			assertThatThrownBy(() -> service.findPromptRankings(arguments[0], arguments[1]))
+			assertThatThrownBy(() -> service.getPromptRankings(arguments[0], arguments[1]))
 				.isInstanceOf(BusinessException.class)
 				.satisfies(exception -> assertThat(((BusinessException) exception).getErrorCode())
 					.isEqualTo(CommonErrorCode.INVALID_REQUEST));

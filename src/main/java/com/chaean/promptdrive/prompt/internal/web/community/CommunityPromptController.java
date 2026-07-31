@@ -35,7 +35,7 @@ public class CommunityPromptController {
 	@GetMapping
 	public SliceResponse<PromptSummaryResponse> listOwnedCommunityPrompts(Authentication authentication,
 		@RequestParam(defaultValue = "0") Integer page, @RequestParam(defaultValue = "20") Integer size) {
-		return communityPromptCommandService.findOwnedCommunityPromptSummaries(resolveOwnerMemberId(authentication), page, size);
+		return communityPromptCommandService.getOwnedCommunityPromptPage(resolveOwnerMemberId(authentication), page, size);
 	}
 
 	@GetMapping("/{promptId}")
@@ -51,8 +51,11 @@ public class CommunityPromptController {
 	}
 
 	@PutMapping("/{promptId}")
-	public ApiResponse<PromptDetailResponse> updateCommunityPrompt(Authentication authentication, @PathVariable Long promptId,
-		@Valid @RequestBody UpdateCommunityPromptRequest request) {
+	public ApiResponse<PromptDetailResponse> updateCommunityPrompt(
+			Authentication authentication,
+			@PathVariable Long promptId,
+			@Valid @RequestBody UpdateCommunityPromptRequest request
+	) {
 		return ApiResponse.of(communityPromptCommandService.updateCommunityPrompt(resolveOwnerMemberId(authentication), promptId, request));
 	}
 

@@ -11,9 +11,10 @@ import com.chaean.promptdrive.prompt.internal.dto.PromptRankingResponse;
 import com.chaean.promptdrive.prompt.internal.dto.PromptSummaryResponse;
 import com.chaean.promptdrive.prompt.internal.persistence.Prompt;
 import com.chaean.promptdrive.prompt.internal.persistence.PromptCategory;
-import com.chaean.promptdrive.prompt.internal.persistence.PromptRankingProjection;
+import com.chaean.promptdrive.prompt.internal.persistence.projection.PromptRankingProjection;
 
 import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -31,6 +32,13 @@ public class PromptResponseMapper {
 	}
 
 	public Slice<PromptSummaryResponse> toPromptSummaryResponseSlice(Slice<Prompt> prompts, List<PromptCategory> categories) {
+		Map<Long, List<PromptCategory>> categoriesByPrompt = categories.stream()
+			.collect(Collectors.groupingBy(category -> category.getPrompt().getId()));
+		return prompts.map(prompt -> PromptSummaryResponse.from(prompt,
+			orderCategoriesByType(categoriesByPrompt.getOrDefault(prompt.getId(), List.of()))));
+	}
+
+	public Page<PromptSummaryResponse> toPromptSummaryResponsePage(Page<Prompt> prompts, List<PromptCategory> categories) {
 		Map<Long, List<PromptCategory>> categoriesByPrompt = categories.stream()
 			.collect(Collectors.groupingBy(category -> category.getPrompt().getId()));
 		return prompts.map(prompt -> PromptSummaryResponse.from(prompt,

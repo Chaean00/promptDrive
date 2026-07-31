@@ -125,7 +125,7 @@ class CommunityPromptCommandServiceTest {
 	@Test
 	@DisplayName("잘못된 page 범위를 비즈니스 오류로 거부한다")
 	void rejectsInvalidPageBounds() {
-		assertThatThrownBy(() -> service.findOwnedCommunityPromptSummaries(1L, -1, 20))
+		assertThatThrownBy(() -> service.getOwnedCommunityPromptPage(1L, -1, 20))
 			.isInstanceOf(BusinessException.class)
 			.satisfies(exception -> assertThat(((BusinessException) exception).getErrorCode())
 				.isEqualTo(CommonErrorCode.INVALID_REQUEST));

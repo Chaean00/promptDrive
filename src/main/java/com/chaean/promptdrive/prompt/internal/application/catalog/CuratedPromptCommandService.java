@@ -35,7 +35,7 @@ public class CuratedPromptCommandService {
 	private final PromptCategoryRepository promptCategoryRepository;
 	private final PromptResponseMapper responseMapper;
 
-	public SliceResponse<CuratedPromptResponse> findCuratedPromptSummaries(PromptVisibility visibility, Integer page, Integer size) {
+	public SliceResponse<CuratedPromptResponse> getCuratedPromptPage(PromptVisibility visibility, Integer page, Integer size) {
 		int resolvedPage = page == null ? 0 : page;
 		int resolvedSize = size == null ? 20 : size;
 		validatePageRequest(resolvedPage, resolvedSize);

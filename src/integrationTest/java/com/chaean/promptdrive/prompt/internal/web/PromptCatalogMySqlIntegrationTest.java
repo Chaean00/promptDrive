@@ -43,7 +43,7 @@ import jakarta.persistence.PersistenceContext;
 
 import org.hibernate.SessionFactory;
 
-import com.chaean.promptdrive.prompt.internal.application.catalog.FindPublicPromptCatalogService;
+import com.chaean.promptdrive.prompt.internal.application.catalog.PublicPromptQueryService;
 import com.chaean.promptdrive.prompt.internal.application.catalog.CuratedPromptCommandService;
 import com.chaean.promptdrive.prompt.internal.dto.CreateCuratedPromptRequest;
 import com.chaean.promptdrive.prompt.internal.domain.PromptCategoryType;
@@ -83,7 +83,7 @@ class PromptCatalogMySqlIntegrationTest {
 	private ObjectMapper objectMapper;
 
 	@Autowired
-	private FindPublicPromptCatalogService findPublicPromptCatalogService;
+	private PublicPromptQueryService publicPromptQueryService;
 
 	@Autowired
 	private CuratedPromptCommandService curatedPromptCommandService;
@@ -143,6 +143,9 @@ class PromptCatalogMySqlIntegrationTest {
 		long promptId = objectMapper.readTree(created.getResponse().getContentAsString()).get("data").get("id").asLong();
 
 		mockMvc.perform(get("/api/prompts").param("category", "DEVELOPMENT"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.content[0].title").value("integration-title"));
+		mockMvc.perform(get("/api/prompts").param("keyword", "integration-content"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.content[0].title").value("integration-title"));
 		mockMvc.perform(get("/api/prompts")
@@ -247,11 +250,12 @@ class PromptCatalogMySqlIntegrationTest {
 		entityManager.clear();
 		mockMvc.perform(get("/api/prompts").param("size", "2"))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.hasNext").value(true));
+			.andExpect(jsonPath("$.totalPages").value(2))
+			.andExpect(jsonPath("$.last").value(false));
 
 		SessionFactory sessionFactory = entityManagerFactory.unwrap(SessionFactory.class);
 		sessionFactory.getStatistics().clear();
-		findPublicPromptCatalogService.findPublicPromptSummaries(null, null, 0, 20);
+		publicPromptQueryService.getPublicPromptPage(null, null, 0, 20);
 
 		org.assertj.core.api.Assertions.assertThat(sessionFactory.getStatistics().getPrepareStatementCount()).isEqualTo(2);
 	}

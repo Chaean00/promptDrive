@@ -23,6 +23,7 @@ import com.chaean.promptdrive.prompt.internal.persistence.PromptCategoryReposito
 import com.chaean.promptdrive.prompt.internal.persistence.PromptRepository;
 
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,12 +41,15 @@ public class CommunityPromptCommandService {
 	private final PromptCategoryRepository promptCategoryRepository;
 	private final PromptResponseMapper responseMapper;
 
-	public SliceResponse<PromptSummaryResponse> findOwnedCommunityPromptSummaries(Long ownerMemberId, Integer page, Integer size) {
+	public SliceResponse<PromptSummaryResponse> getOwnedCommunityPromptPage(Long ownerMemberId, Integer page, Integer size) {
 		int resolvedPage = page == null ? DEFAULT_PAGE : page;
 		int resolvedSize = size == null ? DEFAULT_SIZE : size;
+
 		validatePageRequest(resolvedPage, resolvedSize);
-		var prompts = promptRepository.findAllByOwnerMemberIdAndProvenanceOrderByCreatedAtDescIdDesc(ownerMemberId,
+
+		Slice<Prompt> prompts = promptRepository.findAllByOwnerMemberIdAndProvenanceOrderByCreatedAtDescIdDesc(ownerMemberId,
 			PromptProvenance.COMMUNITY, PageRequest.of(resolvedPage, resolvedSize));
+
 		return SliceResponse.from(responseMapper.toPromptSummaryResponseSlice(prompts,
 			findCategoriesForPrompts(prompts.getContent().stream().map(Prompt::getId).toList())));
 	}
@@ -60,8 +64,11 @@ public class CommunityPromptCommandService {
 	@Transactional
 	public PromptDetailResponse createCommunityPrompt(Long ownerMemberId, CreateCommunityPromptRequest request) {
 		Set<PromptCategoryType> categories = validatePromptCategories(request.getCategories());
+
 		Prompt prompt = promptRepository.save(Prompt.createCommunityPrompt(ownerMemberId, request.getTitle(), request.getContent()));
+
 		replacePromptCategories(prompt, categories, List.of());
+
 		return responseMapper.toPromptDetailResponse(prompt, promptCategoryRepository.findAllByPromptId(prompt.getId()));
 	}
 
@@ -75,6 +82,7 @@ public class CommunityPromptCommandService {
 		Set<PromptCategoryType> categories = validatePromptCategories(request.getCategories());
 		prompt.updateCommunityPrompt(ownerMemberId, request.getTitle(), request.getContent());
 		replacePromptCategories(prompt, categories, existing);
+
 		return responseMapper.toPromptDetailResponse(prompt, promptCategoryRepository.findAllByPromptId(promptId));
 	}
 
