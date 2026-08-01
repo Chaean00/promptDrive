@@ -25,6 +25,7 @@ public class MemberOAuthProperties {
 			"https://kapi.kakao.com/v2/user/me");
 	private List<String> allowedReturnPaths = List.of("/");
 	private List<String> allowedOrigins = List.of();
+	private String frontendOrigin = "http://localhost:3000";
 	private String stateEncryptionKey;
 
 	public void requireConfigured(OAuthProviderProperties provider) {

@@ -2,6 +2,8 @@ package com.chaean.promptdrive.member.internal.application;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -53,11 +55,20 @@ public class OAuthAuthenticationService {
 
 	@Transactional
 	public OAuthLoginStartResponse startOAuthLogin(SocialProvider provider, String requestedReturnPath) {
+		return startOAuthLogin(provider, requestedReturnPath, null);
+	}
+
+	@Transactional
+	public OAuthLoginStartResponse startOAuthLogin(SocialProvider provider, String requestedReturnPath, String frontendOrigin) {
 		OAuthProviderClient client = requireProviderClient(provider);
 		String returnPath = resolveAllowedReturnPath(requestedReturnPath);
 		loginAttemptRepository.deleteByExpiresAtBefore(Instant.now());
 
 		String state = valueGenerator.generateSecureValue();
+		if (frontendOrigin != null && !frontendOrigin.isBlank()) {
+			state = state + "." + Base64.getUrlEncoder().withoutPadding()
+					.encodeToString(frontendOrigin.getBytes(StandardCharsets.UTF_8));
+		}
 		String verifier = valueGenerator.generateSecureValue();
 		String nonce = valueGenerator.generateSecureValue();
 		loginAttemptRepository.save(new OAuthLoginAttempt(provider, valueGenerator.hashWithSha256(state), pkceStateCipher.encryptPkceVerifier(verifier),
