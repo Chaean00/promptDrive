@@ -25,12 +25,7 @@ services:
       - .env
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DATABASE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul
-      DATABASE_USERNAME: ${MYSQL_USER}
-      DATABASE_PASSWORD: ${MYSQL_PASSWORD}
       FRONTEND_ORIGIN: https://promptdrive.co.kr
-    expose:
-      - "8080"
     depends_on:
       mysql:
         condition: service_healthy
