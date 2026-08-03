@@ -69,6 +69,7 @@ public class SecurityConfig {
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers("/api/auth/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/prompts", "/api/prompts/**", "/api/prompt-categories").permitAll()
+						.requestMatchers(HttpMethod.GET, "/sitemap.xml", "/robots.txt").permitAll()
 						.requestMatchers("/api/admin/prompts", "/api/admin/prompts/**").hasRole("ADMIN")
 						.anyRequest().authenticated())
 				.oauth2ResourceServer(resourceServer -> resourceServer

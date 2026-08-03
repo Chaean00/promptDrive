@@ -27,6 +27,9 @@ security:
     issuer: ${JWT_ISSUER:promptdrive}
     audience: ${JWT_AUDIENCE:promptdrive-api}
 
+seo:
+  site-url: ${FRONTEND_ORIGIN:http://localhost:3000}
+
 logging:
   pattern:
     level: "[traceId=%X{traceId:-}] %5p"

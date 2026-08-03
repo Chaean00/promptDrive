@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -55,6 +56,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 	"spring.flyway.enabled=true",
 	"spring.jpa.hibernate.ddl-auto=validate",
 	"spring.jpa.properties.hibernate.generate_statistics=true",
+	"seo.site-url=https://promptdrive.co.kr",
 	"security.jwt.signing-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
 	"security.jwt.issuer=promptdrive",
 	"security.jwt.audience=promptdrive-api"
@@ -235,6 +237,63 @@ class PromptCatalogMySqlIntegrationTest {
 		mockMvc.perform(get("/api/admin/prompts/{id}", promptId)
 				.header("Authorization", "Bearer " + adminToken))
 			.andExpect(status().isNotFound());
+	}
+
+	@Test
+	@DisplayName("공개 Prompt 응답에는 내부 출처 정보를 노출하지 않는다")
+	void doesNotExposeSourceMetadataFromPublicPromptResponse() throws Exception {
+		MvcResult created = mockMvc.perform(post("/api/admin/prompts")
+				.header("Authorization", "Bearer " + adminToken)
+				.with(csrf())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+					{"title":"source-hidden-title","content":"source-hidden-content","categories":["DEVELOPMENT"],"visibility":"PUBLIC","sourceName":"internal-source","sourceUrl":"https://example.com/internal-source"}
+					"""))
+			.andExpect(status().isCreated())
+			.andReturn();
+
+		long promptId = objectMapper.readTree(created.getResponse().getContentAsString()).get("data").get("id").asLong();
+
+		mockMvc.perform(get("/api/prompts/{id}", promptId))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.sourceName").doesNotExist())
+			.andExpect(jsonPath("$.data.sourceUrl").doesNotExist());
+
+		mockMvc.perform(get("/api/admin/prompts/{id}", promptId)
+				.header("Authorization", "Bearer " + adminToken))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.sourceName").value("internal-source"))
+			.andExpect(jsonPath("$.data.sourceUrl").value("https://example.com/internal-source"));
+	}
+
+	@Test
+	@DisplayName("공개 Prompt와 카테고리의 정규 URL을 sitemap과 robots에 제공한다")
+	void servesPublicSitemapAndRobots() throws Exception {
+		MvcResult created = mockMvc.perform(post("/api/admin/prompts")
+				.header("Authorization", "Bearer " + adminToken)
+				.with(csrf())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+					{"title":"seo-sitemap-title","content":"seo-sitemap-content","categories":["DEVELOPMENT"],"visibility":"PUBLIC"}
+					"""))
+			.andExpect(status().isCreated())
+			.andReturn();
+
+		long promptId = objectMapper.readTree(created.getResponse().getContentAsString()).get("data").get("id").asLong();
+
+		mockMvc.perform(get("/sitemap.xml"))
+			.andExpect(status().isOk())
+			.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_XML))
+			.andExpect(content().string(org.hamcrest.Matchers.containsString(
+				"https://promptdrive.co.kr/prompts/" + promptId)))
+			.andExpect(content().string(org.hamcrest.Matchers.containsString(
+				"https://promptdrive.co.kr/categories/DEVELOPMENT")));
+
+		mockMvc.perform(get("/robots.txt"))
+			.andExpect(status().isOk())
+			.andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_PLAIN))
+			.andExpect(content().string(org.hamcrest.Matchers.containsString(
+				"Sitemap: https://promptdrive.co.kr/sitemap.xml")));
 	}
 
 	@Test

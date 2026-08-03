@@ -19,8 +19,6 @@ public class PromptDetailResponse {
 	private final String content;
 	private final EnumDisplayResponse provenance;
 	private final List<EnumDisplayResponse> categories;
-	private final String sourceName;
-	private final String sourceUrl;
 	private final LocalDateTime createdAt;
 	private final LocalDateTime updatedAt;
 
@@ -28,7 +26,7 @@ public class PromptDetailResponse {
 		return new PromptDetailResponse(
 			prompt.getId(), prompt.getTitle(), prompt.getContent(), EnumDisplayResponse.from(prompt.getProvenance()),
 			categories.stream().map(PromptCategory::getCategory).map(EnumDisplayResponse::from).toList(),
-			prompt.getSourceName(), prompt.getSourceUrl(), prompt.getCreatedAt(), prompt.getUpdatedAt()
+			prompt.getCreatedAt(), prompt.getUpdatedAt()
 		);
 	}
 }
