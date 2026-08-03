@@ -106,6 +106,27 @@ class PromptRankingMySqlIntegrationTest {
 	}
 
 	@Test
+	@DisplayName("ranking 기간에 따라 해당 기간의 활성 좋아요만 집계한다")
+	void countsOnlyActiveLikesWithinRequestedPeriod() throws Exception {
+		long recent = createPrompt("recent");
+		long older = createPrompt("older");
+		insertActiveLike(recent, 1L, LocalDateTime.now().minusDays(6));
+		insertActiveLike(older, 2L, LocalDateTime.now().minusDays(8));
+
+		mockMvc.perform(get("/api/prompts/rankings").param("period", "7d"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.content[?(@.id == " + recent + ")].likeCount").value(1))
+			.andExpect(jsonPath("$.content[?(@.id == " + older + ")].likeCount").value(0));
+
+		mockMvc.perform(get("/api/prompts/rankings").param("period", "30d"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.content[?(@.id == " + older + ")].likeCount").value(1));
+
+		mockMvc.perform(get("/api/prompts/rankings").param("period", "invalid"))
+			.andExpect(status().isBadRequest());
+	}
+
+	@Test
 	@DisplayName("페이지네이션과 잘못된 bounds를 처리한다")
 	void handlesPaginationAndInvalidBounds() throws Exception {
 		for (int i = 0; i < 3; i++) {
@@ -143,8 +164,12 @@ class PromptRankingMySqlIntegrationTest {
 	}
 
 	private void insertActiveLike(long promptId, long memberId) {
+		insertActiveLike(promptId, memberId, LocalDateTime.now());
+	}
+
+	private void insertActiveLike(long promptId, long memberId, LocalDateTime createdAt) {
 		jdbcTemplate.update("insert into prompt_like (prompt_id, member_id, created_at, updated_at, deleted_at) "
-			+ "values (?, ?, now(), now(), null)", promptId, memberId);
+			+ "values (?, ?, ?, ?, null)", promptId, memberId, createdAt, createdAt);
 	}
 
 	private void insertSoftDeletedLike(long promptId, long memberId) {

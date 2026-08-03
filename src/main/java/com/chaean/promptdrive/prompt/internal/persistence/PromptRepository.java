@@ -1,8 +1,11 @@
 package com.chaean.promptdrive.prompt.internal.persistence;
 
-import com.chaean.promptdrive.prompt.internal.persistence.projection.PromptRankingProjection;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
+import com.chaean.promptdrive.prompt.internal.persistence.projection.PromptRankingProjection;
+import com.chaean.promptdrive.prompt.internal.persistence.projection.PromptSitemapProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -64,18 +67,28 @@ public interface PromptRepository extends JpaRepository<Prompt, Long> {
 	Slice<Prompt> findCuratedPrompts(@Param("visibility") PromptVisibility visibility, Pageable pageable);
 
 	@Query("""
+		SELECT p.id AS id, p.updatedAt AS updatedAt
+		FROM Prompt p
+		WHERE p.visibility = PromptVisibility.PUBLIC
+		ORDER BY p.id ASC
+		""")
+	List<PromptSitemapProjection> findPublicPromptSitemapEntries();
+
+	@Query("""
 		SELECT p AS prompt, COUNT(pl.id) AS likeCount
 		FROM Prompt p
 		LEFT JOIN PromptLike pl ON pl.prompt = p AND pl.deletedAt IS NULL
+		AND (:likeCreatedAtLowerBound IS NULL OR pl.createdAt >= :likeCreatedAtLowerBound)
 		WHERE p.visibility = :visibility
 		AND p.deletedAt IS NULL
 		GROUP BY p
 		ORDER BY COUNT(pl.id) DESC, p.createdAt DESC, p.id DESC
 		""")
 	Slice<PromptRankingProjection> findPromptRankings(@Param("visibility") PromptVisibility visibility,
+		@Param("likeCreatedAtLowerBound") LocalDateTime likeCreatedAtLowerBound,
 		Pageable pageable);
 
-	default Slice<PromptRankingProjection> findPublicPromptRankings(Pageable pageable) {
-		return findPromptRankings(PromptVisibility.PUBLIC, pageable);
+	default Slice<PromptRankingProjection> findPublicPromptRankings(LocalDateTime likeCreatedAtLowerBound, Pageable pageable) {
+		return findPromptRankings(PromptVisibility.PUBLIC, likeCreatedAtLowerBound, pageable);
 	}
 }

@@ -50,11 +50,11 @@ class PromptRankingQueryServiceTest {
 	void usesDefaultsAndLoadsCategoriesInBatch() {
 		PromptRankingProjection first = ranking(1L, 5L);
 		PromptRankingProjection second = ranking(2L, 0L);
-		when(promptRepository.findPublicPromptRankings(PageRequest.of(0, 20)))
+		when(promptRepository.findPublicPromptRankings(org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq(PageRequest.of(0, 20))))
 			.thenReturn(new SliceImpl<>(List.of(first, second), PageRequest.of(0, 20), true));
 		when(promptCategoryRepository.findAllByPromptIdIn(List.of(1L, 2L))).thenReturn(List.of());
 
-		var response = service.getPromptRankings(null, null);
+		var response = service.getPromptRankings("all", null, null);
 
 		assertThat(response.getPage()).isZero();
 		assertThat(response.getSize()).isEqualTo(20);
@@ -68,10 +68,10 @@ class PromptRankingQueryServiceTest {
 	@Test
 	@DisplayName("지정한 page와 size를 PageRequest에 전달한다")
 	void usesRequestedPageAndSize() {
-		when(promptRepository.findPublicPromptRankings(PageRequest.of(2, 3)))
+		when(promptRepository.findPublicPromptRankings(org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq(PageRequest.of(2, 3))))
 			.thenReturn(new SliceImpl<>(List.<PromptRankingProjection>of(), PageRequest.of(2, 3), false));
 
-		var response = service.getPromptRankings(2, 3);
+		var response = service.getPromptRankings("all", 2, 3);
 
 		assertThat(response.getPage()).isEqualTo(2);
 		assertThat(response.getSize()).isEqualTo(3);
@@ -85,12 +85,12 @@ class PromptRankingQueryServiceTest {
 			new Integer[] {-1, 1},
 			new Integer[] {0, 0},
 			new Integer[] {0, 101})) {
-			assertThatThrownBy(() -> service.getPromptRankings(arguments[0], arguments[1]))
+			assertThatThrownBy(() -> service.getPromptRankings("all", arguments[0], arguments[1]))
 				.isInstanceOf(BusinessException.class)
 				.satisfies(exception -> assertThat(((BusinessException) exception).getErrorCode())
 					.isEqualTo(CommonErrorCode.INVALID_REQUEST));
 		}
-		verify(promptRepository, never()).findPublicPromptRankings(any());
+		verify(promptRepository, never()).findPublicPromptRankings(any(), any());
 	}
 
 	private PromptRankingProjection ranking(long promptId, long likeCount) {

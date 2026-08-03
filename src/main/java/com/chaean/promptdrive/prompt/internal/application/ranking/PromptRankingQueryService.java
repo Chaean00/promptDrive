@@ -6,6 +6,7 @@ import com.chaean.promptdrive.common.web.error.CommonErrorCode;
 import com.chaean.promptdrive.common.web.error.exception.BusinessException;
 import com.chaean.promptdrive.common.web.response.SliceResponse;
 import com.chaean.promptdrive.prompt.internal.application.catalog.PromptResponseMapper;
+import com.chaean.promptdrive.prompt.internal.domain.PromptRankingPeriod;
 import com.chaean.promptdrive.prompt.internal.dto.PromptRankingResponse;
 import com.chaean.promptdrive.prompt.internal.persistence.PromptCategoryRepository;
 import com.chaean.promptdrive.prompt.internal.persistence.projection.PromptRankingProjection;
@@ -29,13 +30,15 @@ public class PromptRankingQueryService {
 	private final PromptCategoryRepository promptCategoryRepository;
 	private final PromptResponseMapper responseMapper;
 
-	public SliceResponse<PromptRankingResponse> getPromptRankings(Integer page, Integer size) {
+	public SliceResponse<PromptRankingResponse> getPromptRankings(String periodCode, Integer page, Integer size) {
 		int resolvedPage = page == null ? DEFAULT_PAGE : page;
 		int resolvedSize = size == null ? DEFAULT_SIZE : size;
 		validatePageRequest(resolvedPage, resolvedSize);
+		PromptRankingPeriod period = PromptRankingPeriod.fromCode(periodCode)
+			.orElseThrow(() -> new BusinessException(CommonErrorCode.INVALID_REQUEST));
 
 		Slice<PromptRankingProjection> rankings = promptRepository.findPublicPromptRankings(
-			PageRequest.of(resolvedPage, resolvedSize));
+			period.resolveLikeCreatedAtLowerBound(java.time.LocalDateTime.now()), PageRequest.of(resolvedPage, resolvedSize));
 		if (rankings.isEmpty()) {
 			return SliceResponse.from(responseMapper.toPromptRankingResponseSlice(rankings, List.of()));
 		}
