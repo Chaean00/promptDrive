@@ -20,9 +20,10 @@ public class PromptRankingController {
 
 	@GetMapping
 	public SliceResponse<PromptRankingResponse> getPromptRankings(
+		@RequestParam(defaultValue = "all") String period,
 		@RequestParam(defaultValue = "0") Integer page,
 		@RequestParam(defaultValue = "20") Integer size
 	) {
-		return promptRankingQueryService.getPromptRankings(page, size);
+		return promptRankingQueryService.getPromptRankings(period, page, size);
 	}
 }

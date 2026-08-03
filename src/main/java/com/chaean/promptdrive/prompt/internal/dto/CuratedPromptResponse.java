@@ -11,12 +11,16 @@ import lombok.Getter;
 public class CuratedPromptResponse extends PromptDetailResponse {
 
 	private final EnumDisplayResponse visibility;
+	private final String sourceName;
+	private final String sourceUrl;
 
 	private CuratedPromptResponse(Prompt prompt, List<PromptCategory> categories) {
 		super(prompt.getId(), prompt.getTitle(), prompt.getContent(), EnumDisplayResponse.from(prompt.getProvenance()),
 			categories.stream().map(PromptCategory::getCategory).map(EnumDisplayResponse::from).toList(),
-			prompt.getSourceName(), prompt.getSourceUrl(), prompt.getCreatedAt(), prompt.getUpdatedAt());
+			prompt.getCreatedAt(), prompt.getUpdatedAt());
 		this.visibility = EnumDisplayResponse.from(prompt.getVisibility());
+		this.sourceName = prompt.getSourceName();
+		this.sourceUrl = prompt.getSourceUrl();
 	}
 
 	public static CuratedPromptResponse from(Prompt prompt, List<PromptCategory> categories) {

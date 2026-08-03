@@ -50,5 +50,7 @@ out/
 .vscode/
 
 secret-docs/
+docs/
+seed-data/
 .omx/
 .omc/
