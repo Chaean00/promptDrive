@@ -307,7 +307,9 @@ class PromptCatalogMySqlIntegrationTest {
 		}
 		entityManager.flush();
 		entityManager.clear();
-		mockMvc.perform(get("/api/prompts").param("size", "2"))
+		mockMvc.perform(get("/api/prompts")
+				.param("keyword", "query-count-title-")
+				.param("size", "2"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.totalPages").value(2))
 			.andExpect(jsonPath("$.last").value(false));
