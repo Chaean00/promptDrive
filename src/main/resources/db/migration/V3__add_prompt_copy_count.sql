@@ -1,0 +1,2 @@
+ALTER TABLE prompt
+    ADD COLUMN copy_count BIGINT NOT NULL DEFAULT 0;

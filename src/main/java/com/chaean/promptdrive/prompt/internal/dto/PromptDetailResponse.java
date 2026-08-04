@@ -21,12 +21,13 @@ public class PromptDetailResponse {
 	private final List<EnumDisplayResponse> categories;
 	private final LocalDateTime createdAt;
 	private final LocalDateTime updatedAt;
+	private final long copyCount;
 
 	public static PromptDetailResponse from(Prompt prompt, List<PromptCategory> categories) {
 		return new PromptDetailResponse(
 			prompt.getId(), prompt.getTitle(), prompt.getContent(), EnumDisplayResponse.from(prompt.getProvenance()),
 			categories.stream().map(PromptCategory::getCategory).map(EnumDisplayResponse::from).toList(),
-			prompt.getCreatedAt(), prompt.getUpdatedAt()
+			prompt.getCreatedAt(), prompt.getUpdatedAt(), prompt.getCopyCount()
 		);
 	}
 }

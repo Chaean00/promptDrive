@@ -17,7 +17,7 @@ public class CuratedPromptResponse extends PromptDetailResponse {
 	private CuratedPromptResponse(Prompt prompt, List<PromptCategory> categories) {
 		super(prompt.getId(), prompt.getTitle(), prompt.getContent(), EnumDisplayResponse.from(prompt.getProvenance()),
 			categories.stream().map(PromptCategory::getCategory).map(EnumDisplayResponse::from).toList(),
-			prompt.getCreatedAt(), prompt.getUpdatedAt());
+			prompt.getCreatedAt(), prompt.getUpdatedAt(), prompt.getCopyCount());
 		this.visibility = EnumDisplayResponse.from(prompt.getVisibility());
 		this.sourceName = prompt.getSourceName();
 		this.sourceUrl = prompt.getSourceUrl();
