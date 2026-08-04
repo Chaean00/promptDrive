@@ -68,6 +68,7 @@ public class SecurityConfig {
 		http.csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers("/api/auth/**").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/prompts/*/copies").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/prompts", "/api/prompts/**", "/api/prompt-categories").permitAll()
 						.requestMatchers(HttpMethod.GET, "/sitemap.xml", "/robots.txt").permitAll()
 						.requestMatchers("/api/admin/prompts", "/api/admin/prompts/**").hasRole("ADMIN")

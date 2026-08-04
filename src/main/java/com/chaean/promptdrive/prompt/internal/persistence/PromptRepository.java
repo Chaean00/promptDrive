@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -49,6 +50,16 @@ public interface PromptRepository extends JpaRepository<Prompt, Long> {
 	}
 
 	Optional<Prompt> findByIdAndVisibility(Long id, PromptVisibility visibility);
+
+	@Modifying(flushAutomatically = true, clearAutomatically = true)
+	@Query(value = """
+		UPDATE prompt
+		SET copy_count = copy_count + 1
+		WHERE id = :promptId
+		AND visibility = 'PUBLIC'
+		AND deleted_at IS NULL
+		""", nativeQuery = true)
+	int incrementPublicCopyCount(@Param("promptId") Long promptId);
 
 	Optional<Prompt> findByIdAndProvenance(Long id, PromptProvenance provenance);
 

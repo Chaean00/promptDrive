@@ -60,6 +60,9 @@ public class Prompt extends BaseEntity {
 	@Column(name = "source_url", length = 2048)
 	private String sourceUrl;
 
+	@Column(name = "copy_count", nullable = false)
+	private long copyCount;
+
 	public Prompt(
 			String title,
 			String content,

@@ -43,8 +43,6 @@ public enum PromptCategoryType {
 	DESIGN("Design", "디자인"),
 	UX_UI("UX/UI", "UX/UI"),
 	CONTENT_CREATION("Content Creation", "콘텐츠 제작"),
-	FINANCE("Finance", "금융"),
-	LEGAL("Legal", "법률"),
 	HEALTHCARE("Healthcare", "헬스케어"),
 	EDUCATION("Education", "교육");
 
