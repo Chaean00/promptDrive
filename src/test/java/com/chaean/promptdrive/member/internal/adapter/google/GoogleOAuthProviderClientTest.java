@@ -7,8 +7,10 @@ import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withException;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import java.io.IOException;
 import java.util.List;
 
 import com.chaean.promptdrive.common.web.error.CommonErrorCode;
@@ -53,7 +55,7 @@ class GoogleOAuthProviderClientTest {
 
 		RestClient.Builder builder = RestClient.builder();
 		server = MockRestServiceServer.bindTo(builder).build();
-		client = new GoogleOAuthProviderClient(builder, properties, decoderProvider, valueGenerator);
+		client = new GoogleOAuthProviderClient(builder.build(), properties, decoderProvider, valueGenerator);
 	}
 
 	@Test
@@ -158,6 +160,17 @@ class GoogleOAuthProviderClientTest {
 			"{\"sub\":\"another-google-user\",\"email_verified\":true}", MediaType.APPLICATION_JSON));
 
 		assertThatThrownBy(() -> client.authenticateUser("code", "verifier", valueGenerator.hashWithSha256("nonce")))
+			.isInstanceOf(BusinessException.class)
+			.extracting(exception -> ((BusinessException) exception).getErrorCode())
+			.isEqualTo(CommonErrorCode.EXTERNAL_SERVICE_ERROR);
+	}
+
+	@Test
+	@DisplayName("Google 전송 오류를 외부 서비스 오류로 변환한다")
+	void convertsTransportFailureToExternalServiceError() {
+		server.expect(requestTo(TOKEN_URI)).andRespond(withException(new IOException("connection failed")));
+
+		assertThatThrownBy(() -> client.authenticateUser("code", "verifier", "nonce-hash"))
 			.isInstanceOf(BusinessException.class)
 			.extracting(exception -> ((BusinessException) exception).getErrorCode())
 			.isEqualTo(CommonErrorCode.EXTERNAL_SERVICE_ERROR);

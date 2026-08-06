@@ -36,11 +36,13 @@ public class CommunityPromptCommandService {
 	private static final int DEFAULT_PAGE = 0;
 	private static final int DEFAULT_SIZE = 20;
 	private static final int MAX_SIZE = 100;
+	private static final int MAX_OFFSET = 10_000;
 
 	private final PromptRepository promptRepository;
 	private final PromptCategoryRepository promptCategoryRepository;
 	private final PromptResponseMapper responseMapper;
 
+	@Transactional(readOnly = true)
 	public SliceResponse<PromptSummaryResponse> getOwnedCommunityPromptPage(Long ownerMemberId, Integer page, Integer size) {
 		int resolvedPage = page == null ? DEFAULT_PAGE : page;
 		int resolvedSize = size == null ? DEFAULT_SIZE : size;
@@ -54,6 +56,7 @@ public class CommunityPromptCommandService {
 			findCategoriesForPrompts(prompts.getContent().stream().map(Prompt::getId).toList())));
 	}
 
+	@Transactional(readOnly = true)
 	public PromptDetailResponse getOwnedCommunityPrompt(Long ownerMemberId, Long promptId) {
 		Prompt prompt = promptRepository.findByIdAndOwnerMemberIdAndProvenance(promptId, ownerMemberId, PromptProvenance.COMMUNITY)
 				.orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND));
@@ -74,7 +77,7 @@ public class CommunityPromptCommandService {
 
 	@Transactional
 	public PromptDetailResponse updateCommunityPrompt(Long ownerMemberId, Long promptId, UpdateCommunityPromptRequest request) {
-		Prompt prompt = promptRepository.findByIdAndOwnerMemberIdAndProvenance(promptId, ownerMemberId, PromptProvenance.COMMUNITY)
+		Prompt prompt = promptRepository.findByIdAndOwnerMemberIdAndProvenanceForUpdate(promptId, ownerMemberId, PromptProvenance.COMMUNITY)
 				.orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND));
 
 		List<PromptCategory> existing = promptCategoryRepository.findAllByPromptId(promptId);
@@ -88,7 +91,7 @@ public class CommunityPromptCommandService {
 
 	@Transactional
 	public void deleteCommunityPrompt(Long ownerMemberId, Long promptId) {
-		Prompt prompt = promptRepository.findByIdAndOwnerMemberIdAndProvenance(promptId, ownerMemberId, PromptProvenance.COMMUNITY)
+		Prompt prompt = promptRepository.findByIdAndOwnerMemberIdAndProvenanceForUpdate(promptId, ownerMemberId, PromptProvenance.COMMUNITY)
 				.orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND));
 
 		promptCategoryRepository.findAllByPromptId(promptId).forEach(PromptCategory::softDelete);
@@ -123,7 +126,7 @@ public class CommunityPromptCommandService {
 	}
 
 	private void validatePageRequest(int page, int size) {
-		if (page < 0 || size < 1 || size > MAX_SIZE) {
+		if (page < 0 || size < 1 || size > MAX_SIZE || page > MAX_OFFSET / size) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
 	}

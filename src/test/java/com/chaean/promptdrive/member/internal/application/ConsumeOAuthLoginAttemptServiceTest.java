@@ -24,7 +24,7 @@ class ConsumeOAuthLoginAttemptServiceTest {
 	@DisplayName("이미 사용한 state를 다시 사용하면 인증 오류를 반환한다")
 	void rejectsReplayOfAnAlreadyConsumedState() {
 		OAuthLoginAttemptRepository repository = mock(OAuthLoginAttemptRepository.class);
-		OAuthLoginAttempt attempt = new OAuthLoginAttempt(SocialProvider.GOOGLE, "state-hash", "encrypted-verifier", null,
+		OAuthLoginAttempt attempt = OAuthLoginAttempt.create(SocialProvider.GOOGLE, "state-hash", "encrypted-verifier", null,
 				"/", Instant.now().plusSeconds(300));
 		given(repository.findByStateHash("state-hash")).willReturn(Optional.of(attempt));
 		ConsumeOAuthLoginAttemptService service = new ConsumeOAuthLoginAttemptService(repository);
@@ -41,7 +41,7 @@ class ConsumeOAuthLoginAttemptServiceTest {
 	@DisplayName("만료된 state를 사용하면 인증 오류를 반환한다")
 	void rejectsAnExpiredState() {
 		OAuthLoginAttemptRepository repository = mock(OAuthLoginAttemptRepository.class);
-		OAuthLoginAttempt attempt = new OAuthLoginAttempt(SocialProvider.GOOGLE, "state-hash", "encrypted-verifier", null,
+		OAuthLoginAttempt attempt = OAuthLoginAttempt.create(SocialProvider.GOOGLE, "state-hash", "encrypted-verifier", null,
 				"/", Instant.now().minusSeconds(1));
 		given(repository.findByStateHash("state-hash")).willReturn(Optional.of(attempt));
 		ConsumeOAuthLoginAttemptService service = new ConsumeOAuthLoginAttemptService(repository);
@@ -56,7 +56,7 @@ class ConsumeOAuthLoginAttemptServiceTest {
 	@DisplayName("다른 provider에서 발급한 state를 사용하면 인증 오류를 반환한다")
 	void rejectsAStateIssuedForAnotherProvider() {
 		OAuthLoginAttemptRepository repository = mock(OAuthLoginAttemptRepository.class);
-		OAuthLoginAttempt attempt = new OAuthLoginAttempt(SocialProvider.GOOGLE, "state-hash", "encrypted-verifier", null,
+		OAuthLoginAttempt attempt = OAuthLoginAttempt.create(SocialProvider.GOOGLE, "state-hash", "encrypted-verifier", null,
 				"/", Instant.now().plusSeconds(300));
 		given(repository.findByStateHash("state-hash")).willReturn(Optional.of(attempt));
 		ConsumeOAuthLoginAttemptService service = new ConsumeOAuthLoginAttemptService(repository);

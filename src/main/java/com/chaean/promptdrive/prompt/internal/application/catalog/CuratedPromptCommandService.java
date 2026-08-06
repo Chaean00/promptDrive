@@ -31,10 +31,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CuratedPromptCommandService {
 
+	private static final int MAX_OFFSET = 10_000;
+
 	private final PromptRepository promptRepository;
 	private final PromptCategoryRepository promptCategoryRepository;
 	private final PromptResponseMapper responseMapper;
 
+	@Transactional(readOnly = true)
 	public SliceResponse<CuratedPromptResponse> getCuratedPromptPage(PromptVisibility visibility, Integer page, Integer size) {
 		int resolvedPage = page == null ? 0 : page;
 		int resolvedSize = size == null ? 20 : size;
@@ -61,7 +64,7 @@ public class CuratedPromptCommandService {
 
 	@Transactional
 	public CuratedPromptResponse updateCuratedPrompt(Long promptId, UpdateCuratedPromptRequest request) {
-		Prompt prompt = findCuratedPrompt(promptId);
+		Prompt prompt = findCuratedPromptForUpdate(promptId);
 		List<PromptCategory> existing = promptCategoryRepository.findAllByPromptId(promptId);
 		Set<PromptCategoryType> categories = validatePromptCategories(request.getCategories());
 		prompt.updateCuratedPrompt(request.getTitle(), request.getContent(), request.getSourceName(), request.getSourceUrl());
@@ -71,20 +74,25 @@ public class CuratedPromptCommandService {
 
 	@Transactional
 	public CuratedPromptResponse changeCuratedPromptVisibility(Long promptId, PromptVisibility visibility) {
-		Prompt prompt = findCuratedPrompt(promptId);
+		Prompt prompt = findCuratedPromptForUpdate(promptId);
 		prompt.changeCuratedPromptVisibility(visibility);
 		return responseMapper.toCuratedPromptResponse(prompt, promptCategoryRepository.findAllByPromptId(promptId));
 	}
 
 	@Transactional
 	public void deleteCuratedPrompt(Long promptId) {
-		Prompt prompt = findCuratedPrompt(promptId);
+		Prompt prompt = findCuratedPromptForUpdate(promptId);
 		promptCategoryRepository.findAllByPromptId(promptId).forEach(PromptCategory::softDelete);
 		prompt.softDeleteCuratedPrompt();
 	}
 
 	private Prompt findCuratedPrompt(Long promptId) {
 		return promptRepository.findByIdAndProvenance(promptId, PromptProvenance.CURATED)
+			.orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND));
+	}
+
+	private Prompt findCuratedPromptForUpdate(Long promptId) {
+		return promptRepository.findByIdAndProvenanceForUpdate(promptId, PromptProvenance.CURATED)
 			.orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND));
 	}
 
@@ -111,7 +119,7 @@ public class CuratedPromptCommandService {
 	}
 
 	private void validatePageRequest(int page, int size) {
-		if (page < 0 || size < 1 || size > 100) {
+		if (page < 0 || size < 1 || size > 100 || page > MAX_OFFSET / size) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
 	}

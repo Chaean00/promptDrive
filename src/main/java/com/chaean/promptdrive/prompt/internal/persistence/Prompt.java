@@ -1,6 +1,7 @@
 package com.chaean.promptdrive.prompt.internal.persistence;
 
 import org.hibernate.annotations.SQLRestriction;
+import org.hibernate.annotations.DynamicUpdate;
 
 import com.chaean.promptdrive.common.persistence.BaseEntity;
 import com.chaean.promptdrive.common.web.error.CommonErrorCode;
@@ -17,6 +18,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -30,6 +32,7 @@ import java.util.Objects;
 		@Index(name = "idx_prompt_owner_member_id", columnList = "owner_member_id")
 })
 @SQLRestriction("deleted_at IS NULL")
+@DynamicUpdate
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Prompt extends BaseEntity {
 
@@ -60,10 +63,14 @@ public class Prompt extends BaseEntity {
 	@Column(name = "source_url", length = 2048)
 	private String sourceUrl;
 
-	@Column(name = "copy_count", nullable = false)
+	@Column(name = "copy_count", nullable = false, updatable = false)
 	private long copyCount;
 
-	public Prompt(
+	@Version
+	@Column(nullable = false)
+	private long version;
+
+	private Prompt(
 			String title,
 			String content,
 			PromptProvenance provenance,

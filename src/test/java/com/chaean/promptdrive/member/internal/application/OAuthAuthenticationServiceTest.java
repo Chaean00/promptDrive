@@ -91,7 +91,7 @@ class OAuthAuthenticationServiceTest {
 	@Test
 	@DisplayName("state를 소비하고 PKCE verifier를 복호화한 뒤 회원과 token을 발급한다")
 	void consumesStateDecryptsVerifierAndIssuesTokensAfterProviderAuthentication() {
-		OAuthLoginAttempt attempt = new OAuthLoginAttempt(SocialProvider.GOOGLE, "state-hash", "encrypted-verifier",
+		OAuthLoginAttempt attempt = OAuthLoginAttempt.create(SocialProvider.GOOGLE, "state-hash", "encrypted-verifier",
 			"nonce-hash", "/dashboard", Instant.now().plusSeconds(300));
 		Member member = mock(Member.class);
 		TokenPairResponse tokens = TokenPairResponse.of("access-token", "refresh-token", java.time.Duration.ofDays(30));

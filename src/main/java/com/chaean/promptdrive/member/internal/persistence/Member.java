@@ -36,8 +36,12 @@ public class Member extends BaseEntity {
 	@Column(nullable = false, length = 20)
 	private MemberRole role;
 
-	public Member(String nickname, MemberRole role) {
+	private Member(String nickname, MemberRole role) {
 		this.nickname = nickname;
 		this.role = role;
+	}
+
+	public static Member create(String nickname, MemberRole role) {
+		return new Member(nickname, role);
 	}
 }

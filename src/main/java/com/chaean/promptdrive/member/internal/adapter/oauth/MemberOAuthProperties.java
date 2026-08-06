@@ -1,6 +1,7 @@
 package com.chaean.promptdrive.member.internal.adapter.oauth;
 
 import java.util.List;
+import java.time.Duration;
 
 import com.chaean.promptdrive.common.web.error.exception.BusinessException;
 import com.chaean.promptdrive.common.web.error.CommonErrorCode;
@@ -27,6 +28,8 @@ public class MemberOAuthProperties {
 	private List<String> allowedOrigins = List.of();
 	private String frontendOrigin = "http://localhost:3000";
 	private String stateEncryptionKey;
+	private Duration connectTimeout = Duration.ofSeconds(3);
+	private Duration readTimeout = Duration.ofSeconds(5);
 
 	public void requireConfigured(OAuthProviderProperties provider) {
 		if (isBlank(provider.getClientId()) || isBlank(provider.getClientSecret()) || isBlank(provider.getRedirectUri())) {

@@ -94,7 +94,7 @@ class CommunityPromptCommandServiceTest {
 		Prompt prompt = Prompt.createCommunityPrompt(1L, "title", "content");
 		PromptCategory existing = PromptCategory.createPromptCategory(prompt, PromptCategoryType.DEVELOPMENT);
 		PromptCategory removed = PromptCategory.createPromptCategory(prompt, PromptCategoryType.CODE_REVIEW);
-		when(promptRepository.findByIdAndOwnerMemberIdAndProvenance(1L, 1L, PromptProvenance.COMMUNITY))
+		when(promptRepository.findByIdAndOwnerMemberIdAndProvenanceForUpdate(1L, 1L, PromptProvenance.COMMUNITY))
 			.thenReturn(Optional.of(prompt));
 		when(promptCategoryRepository.findAllByPromptId(1L)).thenReturn(List.of(existing, removed));
 
@@ -112,7 +112,7 @@ class CommunityPromptCommandServiceTest {
 	void softDeletesOwnedPromptAndCategories() {
 		Prompt prompt = Prompt.createCommunityPrompt(1L, "title", "content");
 		PromptCategory category = PromptCategory.createPromptCategory(prompt, PromptCategoryType.DEVELOPMENT);
-		when(promptRepository.findByIdAndOwnerMemberIdAndProvenance(1L, 1L, PromptProvenance.COMMUNITY))
+		when(promptRepository.findByIdAndOwnerMemberIdAndProvenanceForUpdate(1L, 1L, PromptProvenance.COMMUNITY))
 			.thenReturn(Optional.of(prompt));
 		when(promptCategoryRepository.findAllByPromptId(1L)).thenReturn(List.of(category));
 

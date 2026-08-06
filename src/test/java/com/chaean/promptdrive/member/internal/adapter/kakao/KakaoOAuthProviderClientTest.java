@@ -39,7 +39,7 @@ class KakaoOAuthProviderClientTest {
 
 		RestClient.Builder builder = RestClient.builder();
 		server = MockRestServiceServer.bindTo(builder).build();
-		client = new KakaoOAuthProviderClient(builder, properties);
+		client = new KakaoOAuthProviderClient(builder.build(), properties);
 	}
 
 	@Test

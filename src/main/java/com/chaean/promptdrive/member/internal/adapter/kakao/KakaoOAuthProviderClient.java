@@ -12,10 +12,12 @@ import com.chaean.promptdrive.member.internal.dto.SocialIdentityProfileResponse;
 import com.chaean.promptdrive.member.internal.domain.SocialProvider;
 
 import org.springframework.http.MediaType;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 @Component
@@ -24,8 +26,8 @@ public class KakaoOAuthProviderClient implements OAuthProviderClient {
 	private final RestClient restClient;
 	private final MemberOAuthProperties properties;
 
-	public KakaoOAuthProviderClient(RestClient.Builder restClientBuilder, MemberOAuthProperties properties) {
-		this.restClient = restClientBuilder.build();
+	public KakaoOAuthProviderClient(@Qualifier("oauthRestClient") RestClient restClient, MemberOAuthProperties properties) {
+		this.restClient = restClient;
 		this.properties = properties;
 	}
 
@@ -51,34 +53,40 @@ public class KakaoOAuthProviderClient implements OAuthProviderClient {
 
 	@Override
 	public SocialIdentityProfileResponse authenticateUser(String authorizationCode, String pkceVerifier, String nonce) {
-		OAuthProviderProperties provider = properties.getKakao();
-		properties.requireConfigured(provider);
-		MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-		form.add("code", authorizationCode);
-		form.add("client_id", provider.getClientId());
-		form.add("client_secret", provider.getClientSecret());
-		form.add("redirect_uri", provider.getRedirectUri());
-		form.add("grant_type", "authorization_code");
-		form.add("code_verifier", pkceVerifier);
-		OAuthTokenResponse token = restClient.post().uri(provider.getTokenUri()).contentType(MediaType.APPLICATION_FORM_URLENCODED)
-				.body(form).retrieve().onStatus(status -> status.isError(),
-						(request, response) -> { throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR); })
-				.body(OAuthTokenResponse.class);
-		if (token == null || token.getAccessToken() == null) {
+		try {
+			OAuthProviderProperties provider = properties.getKakao();
+			properties.requireConfigured(provider);
+			MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+			form.add("code", authorizationCode);
+			form.add("client_id", provider.getClientId());
+			form.add("client_secret", provider.getClientSecret());
+			form.add("redirect_uri", provider.getRedirectUri());
+			form.add("grant_type", "authorization_code");
+			form.add("code_verifier", pkceVerifier);
+			OAuthTokenResponse token = restClient.post().uri(provider.getTokenUri()).contentType(MediaType.APPLICATION_FORM_URLENCODED)
+					.body(form).retrieve().onStatus(status -> status.isError(),
+							(request, response) -> { throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR); })
+					.body(OAuthTokenResponse.class);
+			if (token == null || token.getAccessToken() == null) {
+				throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR);
+			}
+			KakaoUserInfoResponse userInfo = restClient.get().uri(provider.getUserInfoUri())
+					.headers(headers -> headers.setBearerAuth(token.getAccessToken())).retrieve()
+					.onStatus(status -> status.isError(),
+							(request, response) -> { throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR); })
+					.body(KakaoUserInfoResponse.class);
+			if (userInfo == null || userInfo.getId() == null || userInfo.getId().isBlank()) {
+				throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR);
+			}
+			KakaoAccountResponse account = userInfo.getKakaoAccount();
+			String nickname = account == null || account.getProfile() == null ? null : account.getProfile().getNickname();
+			String email = account != null && account.isEmailValid() && account.isEmailVerified()
+					? account.getEmail() : null;
+			return SocialIdentityProfileResponse.of(SocialProvider.KAKAO, userInfo.getId(), nickname, email);
+		} catch (BusinessException exception) {
+			throw exception;
+		} catch (RestClientException exception) {
 			throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR);
 		}
-		KakaoUserInfoResponse userInfo = restClient.get().uri(provider.getUserInfoUri())
-				.headers(headers -> headers.setBearerAuth(token.getAccessToken())).retrieve()
-				.onStatus(status -> status.isError(),
-						(request, response) -> { throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR); })
-				.body(KakaoUserInfoResponse.class);
-		if (userInfo == null || userInfo.getId() == null || userInfo.getId().isBlank()) {
-			throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR);
-		}
-		KakaoAccountResponse account = userInfo.getKakaoAccount();
-		String nickname = account == null || account.getProfile() == null ? null : account.getProfile().getNickname();
-		String email = account != null && account.isEmailValid() && account.isEmailVerified()
-				? account.getEmail() : null;
-		return SocialIdentityProfileResponse.of(SocialProvider.KAKAO, userInfo.getId(), nickname, email);
 	}
 }
