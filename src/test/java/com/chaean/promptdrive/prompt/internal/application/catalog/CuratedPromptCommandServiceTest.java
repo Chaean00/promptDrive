@@ -79,7 +79,7 @@ class CuratedPromptCommandServiceTest {
 	void deletesCuratedPromptAndAllActiveCategories() {
 		Prompt prompt = Prompt.createCuratedPrompt("title", "content", PromptVisibility.PUBLIC, null, null);
 		PromptCategory category = PromptCategory.createPromptCategory(prompt, PromptCategoryType.DEVELOPMENT);
-		when(promptRepository.findByIdAndProvenance(1L, PromptProvenance.CURATED)).thenReturn(Optional.of(prompt));
+		when(promptRepository.findByIdAndProvenanceForUpdate(1L, PromptProvenance.CURATED)).thenReturn(Optional.of(prompt));
 		when(promptCategoryRepository.findAllByPromptId(1L)).thenReturn(List.of(category));
 
 		service.deleteCuratedPrompt(1L);
@@ -94,7 +94,7 @@ class CuratedPromptCommandServiceTest {
 		Prompt prompt = Prompt.createCuratedPrompt("title", "content", PromptVisibility.PUBLIC, null, null);
 		PromptCategory existing = PromptCategory.createPromptCategory(prompt, PromptCategoryType.DEVELOPMENT);
 		PromptCategory removed = PromptCategory.createPromptCategory(prompt, PromptCategoryType.CODE_REVIEW);
-		when(promptRepository.findByIdAndProvenance(1L, PromptProvenance.CURATED)).thenReturn(Optional.of(prompt));
+		when(promptRepository.findByIdAndProvenanceForUpdate(1L, PromptProvenance.CURATED)).thenReturn(Optional.of(prompt));
 		when(promptCategoryRepository.findAllByPromptId(1L)).thenReturn(List.of(existing, removed));
 
 		service.updateCuratedPrompt(1L, new UpdateCuratedPromptRequest("updated", "new content",

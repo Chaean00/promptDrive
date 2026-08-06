@@ -18,7 +18,7 @@ member:
       redirect-uri: ${KAKAO_OAUTH_REDIRECT_URI:}
     state-encryption-key: ${OAUTH_STATE_ENCRYPTION_KEY:}
     allowed-return-paths: ${OAUTH_ALLOWED_RETURN_PATHS:/}
-    allowed-origins: ${OAUTH_ALLOWED_ORIGINS:}
+    allowed-origins: ${OAUTH_ALLOWED_ORIGINS:${FRONTEND_ORIGIN:http://localhost:3000}}
     frontend-origin: ${FRONTEND_ORIGIN:http://localhost:3000}
 
 security:

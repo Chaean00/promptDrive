@@ -24,7 +24,7 @@ public class PromptLikeCommandService {
 
 	@Transactional(isolation = Isolation.READ_COMMITTED)
 	public PromptLikeResponse registerPromptLike(Long memberId, Long promptId) {
-		promptRepository.findByIdAndVisibility(promptId, PromptVisibility.PUBLIC)
+		promptRepository.findByIdAndVisibilityForUpdate(promptId, PromptVisibility.PUBLIC)
 				.orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND));
 
 		if (promptLikeRepository.reactivateLatestDeletedByPromptIdAndMemberId(promptId, memberId) == 0) {
@@ -36,7 +36,7 @@ public class PromptLikeCommandService {
 
 	@Transactional
 	public PromptLikeResponse removePromptLike(Long memberId, Long promptId) {
-		promptRepository.findByIdAndVisibility(promptId, PromptVisibility.PUBLIC)
+		promptRepository.findByIdAndVisibilityForUpdate(promptId, PromptVisibility.PUBLIC)
 				.orElseThrow(() -> new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND));
 
 		promptLikeRepository.findByPromptIdAndMemberId(promptId, memberId).ifPresent(PromptLike::softDelete);

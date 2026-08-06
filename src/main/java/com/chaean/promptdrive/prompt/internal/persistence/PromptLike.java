@@ -39,8 +39,12 @@ public class PromptLike extends BaseEntity {
 	@Column(name = "member_id", nullable = false)
 	private Long memberId;
 
-	public PromptLike(Prompt prompt, Long memberId) {
+	private PromptLike(Prompt prompt, Long memberId) {
 		this.prompt = prompt;
 		this.memberId = memberId;
+	}
+
+	public static PromptLike create(Prompt prompt, Long memberId) {
+		return new PromptLike(prompt, memberId);
 	}
 }

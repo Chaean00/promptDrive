@@ -32,7 +32,7 @@ public class RefreshTokenManagementService {
 	public TokenPairResponse issueRefreshToken(Member member) {
 		Instant now = Instant.now();
 		String rawToken = generateRefreshTokenValue();
-		refreshTokenRepository.save(new RefreshToken(member, UUID.randomUUID(), valueGenerator.hashWithSha256(rawToken), null,
+		refreshTokenRepository.save(RefreshToken.issue(member, UUID.randomUUID(), valueGenerator.hashWithSha256(rawToken),
 				now.plus(properties.getRefreshTokenTtl())));
 
 		return TokenPairResponse.of(jwtAccessTokenIssuer.issueAccessToken(member, now), rawToken, properties.getRefreshTokenTtl());
@@ -56,7 +56,7 @@ public class RefreshTokenManagementService {
 
 		current.revokeRefreshToken(now);
 		String nextRawToken = generateRefreshTokenValue();
-		refreshTokenRepository.save(new RefreshToken(current.getMember(), current.getFamilyId(), valueGenerator.hashWithSha256(nextRawToken),
+		refreshTokenRepository.save(RefreshToken.rotate(current.getMember(), current.getFamilyId(), valueGenerator.hashWithSha256(nextRawToken),
 				current.getId(), now.plus(properties.getRefreshTokenTtl())));
 
 		return TokenPairResponse.of(jwtAccessTokenIssuer.issueAccessToken(current.getMember(), now), nextRawToken,

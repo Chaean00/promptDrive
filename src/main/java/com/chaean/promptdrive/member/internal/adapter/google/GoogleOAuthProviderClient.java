@@ -20,6 +20,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 @Component
@@ -30,10 +31,10 @@ public class GoogleOAuthProviderClient implements OAuthProviderClient {
 	private final ObjectProvider<JwtDecoder> idTokenDecoderProvider;
 	private final OAuthSecurityValueGenerator valueGenerator;
 
-	public GoogleOAuthProviderClient(RestClient.Builder restClientBuilder, MemberOAuthProperties properties,
+	public GoogleOAuthProviderClient(@Qualifier("oauthRestClient") RestClient restClient, MemberOAuthProperties properties,
 			@Qualifier("googleIdTokenDecoder") ObjectProvider<JwtDecoder> idTokenDecoderProvider,
 			OAuthSecurityValueGenerator valueGenerator) {
-		this.restClient = restClientBuilder.build();
+		this.restClient = restClient;
 		this.properties = properties;
 		this.idTokenDecoderProvider = idTokenDecoderProvider;
 		this.valueGenerator = valueGenerator;
@@ -62,36 +63,42 @@ public class GoogleOAuthProviderClient implements OAuthProviderClient {
 
 	@Override
 	public SocialIdentityProfileResponse authenticateUser(String authorizationCode, String pkceVerifier, String nonceHash) {
-		OAuthProviderProperties provider = properties.getGoogle();
-		properties.requireConfigured(provider);
+		try {
+			OAuthProviderProperties provider = properties.getGoogle();
+			properties.requireConfigured(provider);
 
-		MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-		form.add("code", authorizationCode);
-		form.add("client_id", provider.getClientId());
-		form.add("client_secret", provider.getClientSecret());
-		form.add("redirect_uri", provider.getRedirectUri());
-		form.add("grant_type", "authorization_code");
-		form.add("code_verifier", pkceVerifier);
+			MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+			form.add("code", authorizationCode);
+			form.add("client_id", provider.getClientId());
+			form.add("client_secret", provider.getClientSecret());
+			form.add("redirect_uri", provider.getRedirectUri());
+			form.add("grant_type", "authorization_code");
+			form.add("code_verifier", pkceVerifier);
 
-		OAuthTokenResponse token = requestToken(provider.getTokenUri(), form);
-		if (token == null || token.getAccessToken() == null || token.getIdToken() == null) {
-			throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR);
-		}
+			OAuthTokenResponse token = requestToken(provider.getTokenUri(), form);
+			if (token == null || token.getAccessToken() == null || token.getIdToken() == null) {
+				throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR);
+			}
 
-		Jwt validatedIdToken = validateIdToken(token.getIdToken(), provider.getClientId(), nonceHash);
-		GoogleUserInfoResponse userInfo = restClient.get().uri(provider.getUserInfoUri())
-				.headers(headers -> headers.setBearerAuth(token.getAccessToken()))
-				.retrieve().onStatus(status -> status.isError(),
-						(request, response) -> { throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR); })
-				.body(GoogleUserInfoResponse.class);
+			Jwt validatedIdToken = validateIdToken(token.getIdToken(), provider.getClientId(), nonceHash);
+			GoogleUserInfoResponse userInfo = restClient.get().uri(provider.getUserInfoUri())
+					.headers(headers -> headers.setBearerAuth(token.getAccessToken()))
+					.retrieve().onStatus(status -> status.isError(),
+							(request, response) -> { throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR); })
+					.body(GoogleUserInfoResponse.class);
 
-		if (userInfo == null || userInfo.getSub() == null || userInfo.getSub().isBlank()
-				|| !userInfo.getSub().equals(validatedIdToken.getSubject())) {
-			throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR);
-		}
+			if (userInfo == null || userInfo.getSub() == null || userInfo.getSub().isBlank()
+					|| !userInfo.getSub().equals(validatedIdToken.getSubject())) {
+				throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR);
+			}
 
-		return SocialIdentityProfileResponse.of(SocialProvider.GOOGLE, userInfo.getSub(), userInfo.getName(),
+			return SocialIdentityProfileResponse.of(SocialProvider.GOOGLE, userInfo.getSub(), userInfo.getName(),
 				userInfo.isEmailVerified() ? userInfo.getEmail() : null);
+		} catch (BusinessException exception) {
+			throw exception;
+		} catch (RestClientException exception) {
+			throw new BusinessException(CommonErrorCode.EXTERNAL_SERVICE_ERROR);
+		}
 	}
 
 	private Jwt validateIdToken(String idToken, String clientId, String nonceHash) {

@@ -3,6 +3,7 @@ package com.chaean.promptdrive.member.internal.persistence;
 import org.hibernate.annotations.SQLRestriction;
 
 import com.chaean.promptdrive.common.persistence.BaseEntity;
+import com.chaean.promptdrive.member.internal.domain.SocialProvider;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.ConstraintMode;
@@ -45,10 +46,14 @@ public class SocialIdentity extends BaseEntity {
 	@Column(length = 255)
 	private String email;
 
-	public SocialIdentity(Member member, String provider, String providerUserId, String email) {
+	private SocialIdentity(Member member, String provider, String providerUserId, String email) {
 		this.member = member;
 		this.provider = provider;
 		this.providerUserId = providerUserId;
 		this.email = email;
+	}
+
+	public static SocialIdentity create(Member member, SocialProvider provider, String providerUserId, String email) {
+		return new SocialIdentity(member, provider.name(), providerUserId, email);
 	}
 }

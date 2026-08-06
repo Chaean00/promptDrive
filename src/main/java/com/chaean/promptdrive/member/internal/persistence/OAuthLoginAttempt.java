@@ -53,7 +53,7 @@ public class OAuthLoginAttempt extends BaseEntity {
 	@Column(name = "consumed_at")
 	private Instant consumedAt;
 
-	public OAuthLoginAttempt(SocialProvider provider, String stateHash, String encryptedPkceVerifier, String nonceHash,
+	private OAuthLoginAttempt(SocialProvider provider, String stateHash, String encryptedPkceVerifier, String nonceHash,
 			String returnPath, Instant expiresAt) {
 		this.provider = provider;
 		this.stateHash = stateHash;
@@ -61,6 +61,11 @@ public class OAuthLoginAttempt extends BaseEntity {
 		this.nonceHash = nonceHash;
 		this.returnPath = returnPath;
 		this.expiresAt = expiresAt;
+	}
+
+	public static OAuthLoginAttempt create(SocialProvider provider, String stateHash, String encryptedPkceVerifier,
+			String nonceHash, String returnPath, Instant expiresAt) {
+		return new OAuthLoginAttempt(provider, stateHash, encryptedPkceVerifier, nonceHash, returnPath, expiresAt);
 	}
 
 	public boolean consumeOAuthLoginAttempt(Instant now) {
