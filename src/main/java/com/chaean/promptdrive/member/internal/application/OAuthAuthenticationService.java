@@ -71,7 +71,7 @@ public class OAuthAuthenticationService {
 		}
 		String verifier = valueGenerator.generateSecureValue();
 		String nonce = valueGenerator.generateSecureValue();
-		loginAttemptRepository.save(new OAuthLoginAttempt(provider, valueGenerator.hashWithSha256(state), pkceStateCipher.encryptPkceVerifier(verifier),
+		loginAttemptRepository.save(OAuthLoginAttempt.create(provider, valueGenerator.hashWithSha256(state), pkceStateCipher.encryptPkceVerifier(verifier),
 				valueGenerator.hashWithSha256(nonce), returnPath, Instant.now().plus(LOGIN_ATTEMPT_TTL)));
 
 		return OAuthLoginStartResponse.of(client.createAuthorizationUri(state, valueGenerator.createPkceCodeChallenge(verifier), nonce), state);

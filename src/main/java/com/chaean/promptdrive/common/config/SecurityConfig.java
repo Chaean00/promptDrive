@@ -2,7 +2,6 @@ package com.chaean.promptdrive.common.config;
 
 import java.util.List;
 
-import org.springframework.context.annotation.Conditional;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -29,13 +28,11 @@ import com.nimbusds.jose.proc.SecurityContext;
 public class SecurityConfig {
 
 	@Bean
-	@Conditional(JwtSigningKeyCondition.class)
 	public JwtEncoder jwtEncoder(JwtSigningKeyFactory jwtSigningKeyFactory, JwtProperties properties) {
 		return new NimbusJwtEncoder(new ImmutableSecret<SecurityContext>(jwtSigningKeyFactory.createSigningKey(properties.getSigningKey())));
 	}
 
 	@Bean
-	@Conditional(JwtSigningKeyCondition.class)
 	public JwtDecoder jwtDecoder(JwtSigningKeyFactory jwtSigningKeyFactory, JwtProperties properties) {
 		NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(jwtSigningKeyFactory.createSigningKey(properties.getSigningKey())).build();
 		decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
@@ -62,10 +59,10 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	@Conditional(JwtSigningKeyCondition.class)
 	public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter,
 			@Qualifier("jwtDecoder") JwtDecoder jwtDecoder) throws Exception {
 		http.csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
+				.cors(cors -> { })
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers("/api/auth/**").permitAll()
 						.requestMatchers(HttpMethod.POST, "/api/prompts/*/copies").permitAll()

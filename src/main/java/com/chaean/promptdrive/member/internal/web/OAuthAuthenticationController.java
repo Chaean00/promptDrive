@@ -4,6 +4,9 @@ import java.time.Duration;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Arrays;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.chaean.promptdrive.common.config.JwtProperties;
 import com.chaean.promptdrive.common.web.error.CommonErrorCode;
@@ -43,6 +46,7 @@ public class OAuthAuthenticationController {
 	private static final String REFRESH_COOKIE_NAME = "refresh_token";
 	private static final String REFRESH_COOKIE_PATH = "/api/auth/refresh";
 	private static final String LOGIN_STATE_COOKIE_NAME = "oauth_login_state";
+	private static final String LOGIN_STATE_DELIMITER = "~";
 	private static final String FRONTEND_ORIGIN_COOKIE_NAME = "oauth_frontend_origin";
 
 	private final OAuthAuthenticationService oauthAuthenticationService;
@@ -55,12 +59,13 @@ public class OAuthAuthenticationController {
 	public ResponseEntity<Void> startOAuthLogin(
 			@PathVariable String provider,
 			@RequestParam(required = false) String returnPath,
-			@RequestParam(required = false) String frontendOrigin
+			@RequestParam(required = false) String frontendOrigin,
+			@CookieValue(name = LOGIN_STATE_COOKIE_NAME, required = false) String browserStates
 	) {
 		String resolvedFrontendOrigin = resolveFrontendOrigin(frontendOrigin);
 		OAuthLoginStartResponse loginStart = oauthAuthenticationService.startOAuthLogin(parseSocialProvider(provider), returnPath, resolvedFrontendOrigin);
 		return ResponseEntity.status(HttpStatus.FOUND).header(HttpHeaders.LOCATION, loginStart.getAuthorizationUri())
-				.header(HttpHeaders.SET_COOKIE, loginStateCookie(loginStart.getState()).toString())
+					.header(HttpHeaders.SET_COOKIE, loginStateCookie(appendLoginState(browserStates, loginStart.getState())).toString())
 				.header(HttpHeaders.SET_COOKIE, frontendOriginCookie(resolvedFrontendOrigin).toString()).build();
 	}
 
@@ -79,7 +84,7 @@ public class OAuthAuthenticationController {
 			@CookieValue(name = FRONTEND_ORIGIN_COOKIE_NAME, required = false) String browserFrontendOrigin
 	) {
 		SocialProvider socialProvider = parseSocialProvider(provider);
-		if (state == null || !state.equals(browserState)) {
+		if (state == null || !containsLoginState(browserState, state)) {
 			throw new BusinessException(CommonErrorCode.UNAUTHORIZED_REQUEST);
 		}
 		if (error != null) {
@@ -95,7 +100,7 @@ public class OAuthAuthenticationController {
 		URI frontendRedirect = frontendRedirectUri(frontendOrigin, tokenResponse.getReturnPath(), tokenResponse.getAccessToken());
 		return ResponseEntity.status(HttpStatus.FOUND).location(frontendRedirect)
 				.header(HttpHeaders.SET_COOKIE, refreshCookie(result.getTokens()).toString())
-				.header(HttpHeaders.SET_COOKIE, deleteLoginStateCookie().toString())
+					.header(HttpHeaders.SET_COOKIE, loginStateCookie(removeLoginState(browserState, state)).toString())
 				.header(HttpHeaders.SET_COOKIE, deleteFrontendOriginCookie().toString())
 				.build();
 	}
@@ -187,10 +192,25 @@ public class OAuthAuthenticationController {
 				.maxAge(Duration.ofMinutes(5)).build();
 	}
 
-	private ResponseCookie deleteLoginStateCookie() {
-		return ResponseCookie.from(LOGIN_STATE_COOKIE_NAME, "").httpOnly(true)
-				.secure(jwtProperties.isRefreshCookieSecure()).sameSite("Lax").path("/api/auth")
-				.maxAge(Duration.ZERO).build();
+	private boolean containsLoginState(String browserStates, String state) {
+		return browserStates != null && splitLoginStates(browserStates).anyMatch(state::equals);
+	}
+
+	private String appendLoginState(String browserStates, String state) {
+		String[] existingStates = browserStates == null ? new String[0]
+			: splitLoginStates(browserStates).filter(value -> !value.isBlank()).toArray(String[]::new);
+		int firstStateIndex = Math.max(0, existingStates.length - 4);
+		return Stream.concat(Arrays.stream(existingStates, firstStateIndex, existingStates.length), Stream.of(state))
+			.collect(Collectors.joining(LOGIN_STATE_DELIMITER));
+	}
+
+	private String removeLoginState(String browserStates, String state) {
+		return splitLoginStates(browserStates).filter(value -> !value.equals(state) && !value.isBlank())
+			.collect(Collectors.joining(LOGIN_STATE_DELIMITER));
+	}
+
+	private Stream<String> splitLoginStates(String browserStates) {
+		return Arrays.stream(browserStates.split("[~,]"));
 	}
 
 	private SocialProvider parseSocialProvider(String provider) {

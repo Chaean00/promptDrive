@@ -44,7 +44,7 @@ class PromptLikeCommandServiceTest {
 	@Test
 	@DisplayName("공개 Prompt에 좋아요를 등록한다")
 	void likesPublicPrompt() {
-		when(promptRepository.findByIdAndVisibility(1L, PromptVisibility.PUBLIC)).thenReturn(Optional.of(publicPrompt()));
+		when(promptRepository.findByIdAndVisibilityForUpdate(1L, PromptVisibility.PUBLIC)).thenReturn(Optional.of(publicPrompt()));
 		when(promptLikeRepository.reactivateLatestDeletedByPromptIdAndMemberId(1L, 7L)).thenReturn(0);
 
 		var response = service.registerPromptLike(7L, 1L);
@@ -57,7 +57,7 @@ class PromptLikeCommandServiceTest {
 	@Test
 	@DisplayName("중복 좋아요는 원자적 삽입으로 기존 활성 행을 유지하는 멱등 동작이다")
 	void duplicateLikeIsIdempotent() {
-		when(promptRepository.findByIdAndVisibility(1L, PromptVisibility.PUBLIC)).thenReturn(Optional.of(publicPrompt()));
+		when(promptRepository.findByIdAndVisibilityForUpdate(1L, PromptVisibility.PUBLIC)).thenReturn(Optional.of(publicPrompt()));
 		when(promptLikeRepository.reactivateLatestDeletedByPromptIdAndMemberId(1L, 7L)).thenReturn(0);
 
 		assertThat(service.registerPromptLike(7L, 1L).isLiked()).isTrue();
@@ -68,7 +68,7 @@ class PromptLikeCommandServiceTest {
 	@Test
 	@DisplayName("기존 소프트 삭제 좋아요를 재활성화한다")
 	void restoresDeletedLike() {
-		when(promptRepository.findByIdAndVisibility(1L, PromptVisibility.PUBLIC)).thenReturn(Optional.of(publicPrompt()));
+		when(promptRepository.findByIdAndVisibilityForUpdate(1L, PromptVisibility.PUBLIC)).thenReturn(Optional.of(publicPrompt()));
 		when(promptLikeRepository.reactivateLatestDeletedByPromptIdAndMemberId(1L, 7L)).thenReturn(1);
 
 		assertThat(service.registerPromptLike(7L, 1L).isLiked()).isTrue();
@@ -80,8 +80,8 @@ class PromptLikeCommandServiceTest {
 	@DisplayName("좋아요 취소는 활성 행을 소프트 삭제하고 중복 취소는 무시한다")
 	void unlikesIdempotently() {
 		Prompt prompt = publicPrompt();
-		PromptLike existing = new PromptLike(prompt, 7L);
-		when(promptRepository.findByIdAndVisibility(1L, PromptVisibility.PUBLIC)).thenReturn(Optional.of(prompt));
+		PromptLike existing = PromptLike.create(prompt, 7L);
+		when(promptRepository.findByIdAndVisibilityForUpdate(1L, PromptVisibility.PUBLIC)).thenReturn(Optional.of(prompt));
 		when(promptLikeRepository.findByPromptIdAndMemberId(1L, 7L))
 			.thenReturn(Optional.of(existing))
 			.thenReturn(Optional.empty());
@@ -94,7 +94,7 @@ class PromptLikeCommandServiceTest {
 	@Test
 	@DisplayName("비공개 Prompt에는 좋아요를 변경할 수 없다")
 	void rejectsNonPublicPrompt() {
-		when(promptRepository.findByIdAndVisibility(1L, PromptVisibility.PUBLIC)).thenReturn(Optional.empty());
+		when(promptRepository.findByIdAndVisibilityForUpdate(1L, PromptVisibility.PUBLIC)).thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> service.registerPromptLike(7L, 1L))
 			.isInstanceOf(BusinessException.class)
@@ -107,7 +107,7 @@ class PromptLikeCommandServiceTest {
 	@Test
 	@DisplayName("없는 Prompt에는 좋아요를 변경할 수 없다")
 	void rejectsMissingPrompt() {
-		when(promptRepository.findByIdAndVisibility(1L, PromptVisibility.PUBLIC)).thenReturn(Optional.empty());
+		when(promptRepository.findByIdAndVisibilityForUpdate(1L, PromptVisibility.PUBLIC)).thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> service.removePromptLike(7L, 1L))
 			.isInstanceOf(BusinessException.class)

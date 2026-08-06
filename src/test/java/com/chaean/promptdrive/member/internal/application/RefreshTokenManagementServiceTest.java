@@ -57,8 +57,7 @@ class RefreshTokenManagementServiceTest {
 	@DisplayName("활성 refresh token을 회전시키고 다음 token을 family에 연결한다")
 	void rotatesActiveTokenAndLinksTheNextTokenToThePredecessor() {
 		UUID familyId = UUID.randomUUID();
-		RefreshToken current = new RefreshToken(member, familyId, "hash-raw-token", null,
-			Instant.now().plusSeconds(300));
+		RefreshToken current = RefreshToken.issue(member, familyId, "hash-raw-token", Instant.now().plusSeconds(300));
 		given(repository.findByTokenHash("hash-raw-token")).willReturn(java.util.Optional.of(current));
 
 		var response = service.rotateRefreshToken("raw-token");
@@ -75,9 +74,9 @@ class RefreshTokenManagementServiceTest {
 	@DisplayName("재사용된 refresh token을 표시하고 family 전체를 폐기한다")
 	void marksReusedTokenAndRevokesTheWholeFamily() {
 		UUID familyId = UUID.randomUUID();
-		RefreshToken reused = new RefreshToken(member, familyId, "hash-old", null, Instant.now().plusSeconds(300));
+		RefreshToken reused = RefreshToken.issue(member, familyId, "hash-old", Instant.now().plusSeconds(300));
 		reused.revokeRefreshToken(Instant.now());
-		RefreshToken sibling = new RefreshToken(member, familyId, "hash-sibling", null, Instant.now().plusSeconds(300));
+		RefreshToken sibling = RefreshToken.issue(member, familyId, "hash-sibling", Instant.now().plusSeconds(300));
 		given(repository.findByTokenHash("hash-old")).willReturn(java.util.Optional.of(reused));
 		given(repository.findAllByFamilyIdAndRevokedAtIsNull(familyId)).willReturn(List.of(sibling));
 
@@ -91,8 +90,8 @@ class RefreshTokenManagementServiceTest {
 	@DisplayName("로그아웃 시 family의 모든 활성 token을 폐기한다")
 	void revokesAllActiveTokensOnLogout() {
 		UUID familyId = UUID.randomUUID();
-		RefreshToken current = new RefreshToken(member, familyId, "hash-current", null, Instant.now().plusSeconds(300));
-		RefreshToken sibling = new RefreshToken(member, familyId, "hash-sibling", null, Instant.now().plusSeconds(300));
+		RefreshToken current = RefreshToken.issue(member, familyId, "hash-current", Instant.now().plusSeconds(300));
+		RefreshToken sibling = RefreshToken.issue(member, familyId, "hash-sibling", Instant.now().plusSeconds(300));
 		given(repository.findByTokenHash("hash-current")).willReturn(java.util.Optional.of(current));
 		given(repository.findAllByFamilyIdAndRevokedAtIsNull(familyId)).willReturn(List.of(current, sibling));
 

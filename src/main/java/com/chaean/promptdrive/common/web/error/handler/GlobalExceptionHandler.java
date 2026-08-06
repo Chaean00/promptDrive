@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.BindException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -31,6 +32,12 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ApiErrorResponse> handleBusinessException(BusinessException exception,
 			HttpServletRequest request) {
 		return buildErrorResponse(exception.getErrorCode(), request, List.of());
+	}
+
+	@ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+	public ResponseEntity<ApiErrorResponse> handleOptimisticLockingFailureException(
+			ObjectOptimisticLockingFailureException exception, HttpServletRequest request) {
+		return buildErrorResponse(CommonErrorCode.CONFLICT, request, List.of());
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)

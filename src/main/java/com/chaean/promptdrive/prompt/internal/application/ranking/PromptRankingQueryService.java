@@ -15,6 +15,7 @@ import com.chaean.promptdrive.prompt.internal.persistence.PromptRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 
@@ -25,11 +26,13 @@ public class PromptRankingQueryService {
 	private static final int DEFAULT_PAGE = 0;
 	private static final int DEFAULT_SIZE = 20;
 	private static final int MAX_SIZE = 100;
+	private static final int MAX_OFFSET = 10_000;
 
 	private final PromptRepository promptRepository;
 	private final PromptCategoryRepository promptCategoryRepository;
 	private final PromptResponseMapper responseMapper;
 
+	@Transactional(readOnly = true)
 	public SliceResponse<PromptRankingResponse> getPromptRankings(String periodCode, Integer page, Integer size) {
 		int resolvedPage = page == null ? DEFAULT_PAGE : page;
 		int resolvedSize = size == null ? DEFAULT_SIZE : size;
@@ -49,7 +52,7 @@ public class PromptRankingQueryService {
 	}
 
 	private void validatePageRequest(int page, int size) {
-		if (page < 0 || size < 1 || size > MAX_SIZE) {
+		if (page < 0 || size < 1 || size > MAX_SIZE || page > MAX_OFFSET / size) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
 	}

@@ -63,12 +63,21 @@ public class RefreshToken extends BaseEntity {
 	@Column(name = "reused_at")
 	private Instant reusedAt;
 
-	public RefreshToken(Member member, UUID familyId, String tokenHash, Long predecessorId, Instant expiresAt) {
+	private RefreshToken(Member member, UUID familyId, String tokenHash, Long predecessorId, Instant expiresAt) {
 		this.member = member;
 		this.familyId = familyId;
 		this.tokenHash = tokenHash;
 		this.predecessorId = predecessorId;
 		this.expiresAt = expiresAt;
+	}
+
+	public static RefreshToken issue(Member member, UUID familyId, String tokenHash, Instant expiresAt) {
+		return new RefreshToken(member, familyId, tokenHash, null, expiresAt);
+	}
+
+	public static RefreshToken rotate(Member member, UUID familyId, String tokenHash, Long predecessorId,
+			Instant expiresAt) {
+		return new RefreshToken(member, familyId, tokenHash, predecessorId, expiresAt);
 	}
 
 	public boolean isActive(Instant now) {

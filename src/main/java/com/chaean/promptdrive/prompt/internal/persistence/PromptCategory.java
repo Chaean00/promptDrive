@@ -48,7 +48,7 @@ public class PromptCategory extends BaseEntity {
 	@Column(nullable = false, length = 50)
 	private PromptCategoryType category;
 
-	public PromptCategory(Prompt prompt, PromptCategoryType category) {
+	private PromptCategory(Prompt prompt, PromptCategoryType category) {
 		this.prompt = Objects.requireNonNull(prompt);
 		this.category = Objects.requireNonNull(category);
 	}

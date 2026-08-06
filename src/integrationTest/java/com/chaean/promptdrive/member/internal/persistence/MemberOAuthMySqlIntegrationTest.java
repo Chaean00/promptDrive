@@ -66,7 +66,7 @@ class MemberOAuthMySqlIntegrationTest {
 	@DisplayName("OAuth state를 저장하고 한 번만 소비한다")
 	void persistsAndConsumesOAuthStateOnlyOnce() {
 		String stateHash = uniqueValue();
-		loginAttemptRepository.saveAndFlush(new OAuthLoginAttempt(
+		loginAttemptRepository.saveAndFlush(OAuthLoginAttempt.create(
 				SocialProvider.GOOGLE, stateHash, "encrypted-verifier", "nonce-hash", "/",
 				Instant.now().plusSeconds(300)));
 
@@ -82,7 +82,7 @@ class MemberOAuthMySqlIntegrationTest {
 	@Test
 	@DisplayName("refresh token을 해시로 저장하고 재사용 시 token family 전체를 폐기한다")
 	void persistsHashedRefreshTokensAndRevokesTheTokenFamilyOnReuse() {
-		Member member = memberRepository.saveAndFlush(new Member("oauth-integration-" + uniqueValue(), MemberRole.MEMBER));
+		Member member = memberRepository.saveAndFlush(Member.create("oauth-integration-" + uniqueValue(), MemberRole.MEMBER));
 
 		TokenPairResponse first = refreshTokenManagementService.issueRefreshToken(member);
 		String firstHash = valueGenerator.hashWithSha256(first.getRefreshToken());

@@ -18,6 +18,7 @@ import com.chaean.promptdrive.prompt.internal.persistence.PromptRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 
@@ -28,11 +29,13 @@ public class PublicPromptQueryService {
 	private static final int DEFAULT_PAGE = 0;
 	private static final int DEFAULT_SIZE = 20;
 	private static final int MAX_SIZE = 100;
+	private static final int MAX_OFFSET = 10_000;
 
 	private final PromptRepository promptRepository;
 	private final PromptCategoryRepository promptCategoryRepository;
 	private final PromptResponseMapper responseMapper;
 
+	@Transactional(readOnly = true)
 	public PageResponse<PromptSummaryResponse> getPublicPromptPage(
 			PromptProvenance provenance,
 			PromptCategoryType category,
@@ -68,7 +71,7 @@ public class PublicPromptQueryService {
 	}
 
 	private void validatePageRequest(int page, int size) {
-		if (page < 0 || size < 1 || size > MAX_SIZE) {
+		if (page < 0 || size < 1 || size > MAX_SIZE || page > MAX_OFFSET / size) {
 			throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
 		}
 	}
@@ -77,6 +80,7 @@ public class PublicPromptQueryService {
 		if (keyword == null || keyword.isBlank()) {
 			return null;
 		}
-		return keyword.trim();
+		String normalizedKeyword = keyword.trim();
+		return normalizedKeyword.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
 	}
 }
