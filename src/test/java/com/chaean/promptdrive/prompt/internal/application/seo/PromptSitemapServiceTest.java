@@ -11,6 +11,7 @@ import java.util.List;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.chaean.promptdrive.common.config.SeoProperties;
+import com.chaean.promptdrive.prompt.internal.persistence.PromptCollectionRepository;
 import com.chaean.promptdrive.prompt.internal.persistence.PromptRepository;
 import com.chaean.promptdrive.prompt.internal.persistence.projection.PromptSitemapProjection;
 
@@ -26,12 +27,14 @@ import org.springframework.context.annotation.Configuration;
 class PromptSitemapServiceTest {
 
 	private PromptRepository promptRepository;
+	private PromptCollectionRepository collectionRepository;
 	private PromptSitemapService service;
 	private AnnotationConfigApplicationContext context;
 
 	@BeforeEach
 	void setUp() {
 		promptRepository = mock(PromptRepository.class);
+		collectionRepository = mock(PromptCollectionRepository.class);
 		SeoProperties properties = new SeoProperties();
 		properties.setSiteUrl("https://prompt.example/search?a=1&b=2");
 		CacheManager cacheManager = new CaffeineCacheManager("sitemap");
@@ -39,6 +42,7 @@ class PromptSitemapServiceTest {
 		context = new AnnotationConfigApplicationContext();
 		context.register(CacheConfig.class);
 		context.registerBean(PromptRepository.class, () -> promptRepository);
+		context.registerBean(PromptCollectionRepository.class, () -> collectionRepository);
 		context.registerBean(SeoProperties.class, () -> properties);
 		context.registerBean(CacheManager.class, () -> cacheManager);
 		context.registerBean(PromptSitemapService.class);
@@ -57,6 +61,7 @@ class PromptSitemapServiceTest {
 		when(prompt.getId()).thenReturn(42L);
 		when(prompt.getUpdatedAt()).thenReturn(LocalDateTime.of(2026, 8, 10, 12, 0));
 		when(promptRepository.findPublicPromptSitemapEntries()).thenReturn(List.of(prompt));
+		when(collectionRepository.findAll()).thenReturn(List.of());
 
 		String first = service.createSitemapXml();
 		String second = service.createSitemapXml();
@@ -69,6 +74,7 @@ class PromptSitemapServiceTest {
 	@Test
 	void escapesGeneratedUrlValuesAndKeepsRobotsPlainTextContract() {
 		when(promptRepository.findPublicPromptSitemapEntries()).thenReturn(List.of());
+		when(collectionRepository.findAll()).thenReturn(List.of());
 
 		assertThat(service.createSitemapXml())
 			.contains("https://prompt.example/search?a=1&amp;b=2")
