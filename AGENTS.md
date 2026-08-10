@@ -47,7 +47,6 @@
 - 커밋 첫 줄은 `<type>(#{issue-number}): <작업 목적>` 형식을 사용한다.
 - 커밋 본문에는 선택 이유와 검증 결과를 기록하고, Lore Commit Protocol의 trailer 규칙을 함께 따른다.
 - Pull Request 본문에는 `Closes #<issue-number>`를 사용해 관련 Issue를 연결한다.
-- 에이전트는 코드·문서 구현, 테스트, 검증, diff 보고까지만 수행하고 `git add`, `git commit`, `git commit --amend`, `git merge`, `git rebase`, `git cherry-pick`, `git push`, 태그 생성 등 커밋 또는 원격 저장소 이력을 변경하는 작업을 실행하지 않는다. 커밋과 push는 사용자가 직접 수행한다.
 - Team, Ultragoal 등 자동화 워크플로우에서도 auto-checkpoint, 자동 커밋, 자동 merge commit을 만들지 않는다. 워크플로우가 커밋을 필수로 요구하면 커밋 직전의 검증된 working tree와 권장 커밋 메시지만 사용자에게 전달하고 중단한다.
 
 ## 1. 코딩 전에 생각하기
@@ -125,3 +124,4 @@
 - `synchronized`는 실제 공유 상태의 동시성 보호가 필요할 때만 사용한다. Bean 생명주기나 지연 초기화를 위한 용도라면 Spring DI와 `@Lazy`의 필요성·부작용을 먼저 검토한다.
 - 모듈 경계를 확인할 때 DTO의 공개 여부와 구현 클래스의 공개 여부를 구분한다. 공개 Facade와 공개 DTO만 모듈 간 계약으로 사용하고 Entity, Repository, Service 등 `internal` 구현은 노출하지 않는다.
 - 검증 명령을 실제로 실행하고 출력 결과를 읽은 뒤에만 테스트 통과나 작업 완료를 주장한다. `git diff --check`, 컴파일, 테스트와 정적 검색 결과를 변경 범위에 맞게 기록한다.
+- 추가적으로 AGENTS.md 및 CLAUDE.md에 존재하지않지만 사용자가 요청한 내용 중 AGENTS.md에 규칙으로 작성해야하는 경우 사용자에게 질문하고, 그에 대한 답변을 바탕으로 규칙을 작성한다.
