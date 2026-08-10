@@ -60,7 +60,7 @@ class OAuthAuthenticationServiceTest {
 		given(providerClient.createAuthorizationUri("state", "challenge", "nonce"))
 			.willReturn("https://accounts.google.com/auth?state=state");
 
-		var response = service.startOAuthLogin(SocialProvider.GOOGLE, "/dashboard");
+		var response = service.startOAuthLogin(SocialProvider.GOOGLE, "/dashboard", null);
 
 		assertThat(response.getAuthorizationUri()).isEqualTo("https://accounts.google.com/auth?state=state");
 		assertThat(response.getState()).isEqualTo("state");
@@ -71,7 +71,7 @@ class OAuthAuthenticationServiceTest {
 	@Test
 	@DisplayName("허용 목록에 없는 return path를 거부한다")
 	void rejectsReturnPathOutsideAllowList() {
-		assertThatThrownBy(() -> service.startOAuthLogin(SocialProvider.GOOGLE, "https://evil.example"))
+		assertThatThrownBy(() -> service.startOAuthLogin(SocialProvider.GOOGLE, "https://evil.example", null))
 			.isInstanceOf(BusinessException.class)
 			.extracting(exception -> ((BusinessException) exception).getErrorCode())
 			.isEqualTo(CommonErrorCode.INVALID_REQUEST);

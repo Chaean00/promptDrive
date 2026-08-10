@@ -54,11 +54,6 @@ public class OAuthAuthenticationService {
 	}
 
 	@Transactional
-	public OAuthLoginStartResponse startOAuthLogin(SocialProvider provider, String requestedReturnPath) {
-		return startOAuthLogin(provider, requestedReturnPath, null);
-	}
-
-	@Transactional
 	public OAuthLoginStartResponse startOAuthLogin(SocialProvider provider, String requestedReturnPath, String frontendOrigin) {
 		OAuthProviderClient client = requireProviderClient(provider);
 		String returnPath = resolveAllowedReturnPath(requestedReturnPath);
