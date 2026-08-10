@@ -3,6 +3,7 @@ package com.chaean.promptdrive.prompt.internal.web.catalog;
 import com.chaean.promptdrive.common.web.response.ApiResponse;
 import com.chaean.promptdrive.common.web.response.SliceResponse;
 import com.chaean.promptdrive.prompt.internal.application.catalog.CuratedPromptCommandService;
+import com.chaean.promptdrive.prompt.internal.application.catalog.CuratedPromptQueryService;
 import com.chaean.promptdrive.prompt.internal.domain.PromptVisibility;
 import com.chaean.promptdrive.prompt.internal.dto.CreateCuratedPromptRequest;
 import com.chaean.promptdrive.prompt.internal.dto.CuratedPromptResponse;
@@ -32,6 +33,7 @@ import lombok.RequiredArgsConstructor;
 public class AdminPromptController {
 
 	private final CuratedPromptCommandService curatedPromptCommandService;
+	private final CuratedPromptQueryService curatedPromptQueryService;
 
 	@GetMapping
 	public SliceResponse<CuratedPromptResponse> listCuratedPrompts(
@@ -39,12 +41,12 @@ public class AdminPromptController {
 		@RequestParam(defaultValue = "0") Integer page,
 		@RequestParam(defaultValue = "20") Integer size
 	) {
-		return curatedPromptCommandService.getCuratedPromptPage(visibility, page, size);
+		return curatedPromptQueryService.getCuratedPromptPage(visibility, page, size);
 	}
 
 	@GetMapping("/{promptId}")
 	public ApiResponse<CuratedPromptResponse> getCuratedPrompt(@PathVariable Long promptId) {
-		return ApiResponse.of(curatedPromptCommandService.getCuratedPrompt(promptId));
+		return ApiResponse.of(curatedPromptQueryService.getCuratedPrompt(promptId));
 	}
 
 	@PostMapping
