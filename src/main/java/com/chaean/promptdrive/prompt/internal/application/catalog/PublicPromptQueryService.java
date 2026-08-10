@@ -42,10 +42,21 @@ public class PublicPromptQueryService {
 			Integer page,
 			Integer size
 	) {
-		return getPublicPromptPage(provenance, category, null, page, size);
+		return findPublicPromptPage(provenance, category, null, page, size);
 	}
 
+	@Transactional(readOnly = true)
 	public PageResponse<PromptSummaryResponse> getPublicPromptPage(
+			PromptProvenance provenance,
+			PromptCategoryType category,
+			String keyword,
+			Integer page,
+			Integer size
+	) {
+		return findPublicPromptPage(provenance, category, keyword, page, size);
+	}
+
+	private PageResponse<PromptSummaryResponse> findPublicPromptPage(
 			PromptProvenance provenance,
 			PromptCategoryType category,
 			String keyword,
