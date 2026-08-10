@@ -23,7 +23,7 @@ public class PromptSitemapService {
 	private final PromptCollectionRepository collectionRepository;
 	private final SeoProperties seoProperties;
 
-	@Cacheable(cacheNames = "sitemap")
+	@Cacheable(cacheNames = "sitemap", sync = true)
 	public String createSitemapXml() {
 		return generateSitemapXml();
 	}

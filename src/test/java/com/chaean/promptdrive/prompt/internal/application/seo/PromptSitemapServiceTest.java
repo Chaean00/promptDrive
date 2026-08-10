@@ -8,6 +8,12 @@ import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.chaean.promptdrive.common.config.SeoProperties;
@@ -69,6 +75,30 @@ class PromptSitemapServiceTest {
 		assertThat(second).isSameAs(first);
 		verify(promptRepository, times(1)).findPublicPromptSitemapEntries();
 
+	}
+
+	@Test
+	void onlyGeneratesSitemapOnceForConcurrentCacheMisses() throws Exception {
+		AtomicInteger repositoryCalls = new AtomicInteger();
+		CountDownLatch concurrentCalls = new CountDownLatch(2);
+		when(promptRepository.findPublicPromptSitemapEntries()).thenAnswer(invocation -> {
+			repositoryCalls.incrementAndGet();
+			concurrentCalls.countDown();
+			concurrentCalls.await(1, TimeUnit.SECONDS);
+			return List.of();
+		});
+		when(collectionRepository.findAll()).thenReturn(List.of());
+
+		ExecutorService executor = Executors.newFixedThreadPool(2);
+		try {
+			Future<String> first = executor.submit(service::createSitemapXml);
+			Future<String> second = executor.submit(service::createSitemapXml);
+
+			assertThat(first.get(3, TimeUnit.SECONDS)).isEqualTo(second.get(3, TimeUnit.SECONDS));
+			assertThat(repositoryCalls).hasValue(1);
+		} finally {
+			executor.shutdownNow();
+		}
 	}
 
 	@Test
