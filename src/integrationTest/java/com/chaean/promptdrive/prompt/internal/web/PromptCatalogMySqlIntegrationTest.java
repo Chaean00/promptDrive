@@ -8,10 +8,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
@@ -46,9 +50,16 @@ import org.hibernate.SessionFactory;
 
 import com.chaean.promptdrive.prompt.internal.application.catalog.PublicPromptQueryService;
 import com.chaean.promptdrive.prompt.internal.application.catalog.CuratedPromptCommandService;
+import com.chaean.promptdrive.prompt.internal.application.collection.PublicPromptCollectionQueryService;
+import com.chaean.promptdrive.prompt.internal.application.collection.PromptCollectionCommandService;
 import com.chaean.promptdrive.prompt.internal.dto.CreateCuratedPromptRequest;
+import com.chaean.promptdrive.prompt.internal.dto.CreatePromptCollectionRequest;
 import com.chaean.promptdrive.prompt.internal.domain.PromptCategoryType;
 import com.chaean.promptdrive.prompt.internal.domain.PromptVisibility;
+import com.chaean.promptdrive.prompt.internal.persistence.PromptCollectionItem;
+import com.chaean.promptdrive.prompt.internal.persistence.PromptCollectionItemRepository;
+import com.chaean.promptdrive.prompt.internal.persistence.PromptCollectionRepository;
+import com.chaean.promptdrive.prompt.internal.persistence.PromptRepository;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
@@ -89,6 +100,21 @@ class PromptCatalogMySqlIntegrationTest {
 
 	@Autowired
 	private CuratedPromptCommandService curatedPromptCommandService;
+
+	@Autowired
+	private PromptCollectionCommandService promptCollectionCommandService;
+
+	@Autowired
+	private PublicPromptCollectionQueryService publicPromptCollectionQueryService;
+
+	@Autowired
+	private PromptCollectionRepository promptCollectionRepository;
+
+	@Autowired
+	private PromptCollectionItemRepository promptCollectionItemRepository;
+
+	@Autowired
+	private PromptRepository promptRepository;
 
 	@Autowired
 	private EntityManagerFactory entityManagerFactory;
@@ -319,5 +345,61 @@ class PromptCatalogMySqlIntegrationTest {
 		publicPromptQueryService.getPublicPromptPage(null, null, 0, 20);
 
 		org.assertj.core.api.Assertions.assertThat(sessionFactory.getStatistics().getPrepareStatementCount()).isEqualTo(2);
+	}
+
+	@Test
+	@DisplayName("공개 Collection은 공개·미삭제 Prompt만 외부에 노출한다")
+	void exposesOnlyPublicPromptsFromCollection() throws Exception {
+		long publicPromptId = curatedPromptCommandService.createCuratedPrompt(new CreateCuratedPromptRequest(
+			"collection-public", "content", List.of(PromptCategoryType.DEVELOPMENT), PromptVisibility.PUBLIC, null, null)).getId();
+		promptCollectionCommandService.create(new CreatePromptCollectionRequest(
+			"collection-mvp", "MVP collection", "Public acquisition", List.of(publicPromptId)));
+
+		mockMvc.perform(get("/api/prompt-collections/collection-mvp"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.prompts.length()").value(1))
+			.andExpect(jsonPath("$.data.prompts[0].id").value(publicPromptId));
+
+		curatedPromptCommandService.changeCuratedPromptVisibility(publicPromptId, PromptVisibility.HIDDEN);
+		assertThat(publicPromptCollectionQueryService.getBySlug("collection-mvp").getPrompts()).isEmpty();
+	}
+
+	@Test
+	@DisplayName("삭제된 Collection slug는 재사용하고 활성 중복 slug는 거부한다")
+	void enforcesCollectionSlugUniquenessAcrossSoftDelete() {
+		String slug = "collection-" + UUID.randomUUID();
+		long promptId = curatedPromptCommandService.createCuratedPrompt(new CreateCuratedPromptRequest(
+			"collection-unique-prompt", "content", List.of(PromptCategoryType.DEVELOPMENT),
+			PromptVisibility.PUBLIC, null, null)).getId();
+		var request = new CreatePromptCollectionRequest(slug, "Collection", "Description", List.of(promptId));
+		long collectionId = promptCollectionCommandService.create(request).getId();
+
+		assertThatThrownBy(() -> promptCollectionCommandService.create(request))
+			.isInstanceOf(DataIntegrityViolationException.class);
+
+		promptCollectionCommandService.delete(collectionId);
+		assertThat(promptCollectionCommandService.create(request).getSlug()).isEqualTo(slug);
+	}
+
+	@Test
+	@DisplayName("활성 Collection item 중복은 거부하고 삭제된 item은 재등록한다")
+	void enforcesCollectionItemUniquenessAcrossSoftDelete() {
+		long promptId = curatedPromptCommandService.createCuratedPrompt(new CreateCuratedPromptRequest(
+			"collection-item-unique-prompt", "content", List.of(PromptCategoryType.DEVELOPMENT),
+			PromptVisibility.PUBLIC, null, null)).getId();
+		var collection = promptCollectionCommandService.create(new CreatePromptCollectionRequest(
+			"collection-item-" + UUID.randomUUID(), "Collection", "Description", List.of(promptId)));
+		var collectionEntity = promptCollectionRepository.findById(collection.getId()).orElseThrow();
+		var prompt = promptRepository.findById(promptId).orElseThrow();
+
+		assertThatThrownBy(() -> promptCollectionItemRepository.saveAndFlush(
+			PromptCollectionItem.create(collectionEntity, prompt, 1)))
+			.isInstanceOf(DataIntegrityViolationException.class);
+
+		var existingItem = promptCollectionItemRepository.findAllByCollectionId(collection.getId()).getFirst();
+		existingItem.softDelete();
+		promptCollectionItemRepository.saveAndFlush(existingItem);
+		assertThat(promptCollectionItemRepository.saveAndFlush(
+			PromptCollectionItem.create(collectionEntity, prompt, 1)).getPrompt().getId()).isEqualTo(promptId);
 	}
 }
