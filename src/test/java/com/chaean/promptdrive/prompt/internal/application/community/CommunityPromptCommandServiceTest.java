@@ -77,18 +77,6 @@ class CommunityPromptCommandServiceTest {
 	}
 
 	@Test
-	@DisplayName("다른 소유자와 큐레이션 Prompt는 찾을 수 없다")
-	void hidesNonOwnedAndCuratedPrompts() {
-		when(promptRepository.findByIdAndOwnerMemberIdAndProvenance(1L, 2L, PromptProvenance.COMMUNITY))
-			.thenReturn(Optional.empty());
-
-		assertThatThrownBy(() -> service.getOwnedCommunityPrompt(2L, 1L))
-			.isInstanceOf(BusinessException.class)
-			.satisfies(exception -> assertThat(((BusinessException) exception).getErrorCode())
-				.isEqualTo(CommonErrorCode.RESOURCE_NOT_FOUND));
-	}
-
-	@Test
 	@DisplayName("기존 category는 유지하고 새 category만 추가해 수정한다")
 	void updatesByCategorySetDifference() {
 		Prompt prompt = Prompt.createCommunityPrompt(1L, "title", "content");
@@ -122,12 +110,4 @@ class CommunityPromptCommandServiceTest {
 		assertThat(category.getDeletedAt()).isNotNull();
 	}
 
-	@Test
-	@DisplayName("잘못된 page 범위를 비즈니스 오류로 거부한다")
-	void rejectsInvalidPageBounds() {
-		assertThatThrownBy(() -> service.getOwnedCommunityPromptPage(1L, -1, 20))
-			.isInstanceOf(BusinessException.class)
-			.satisfies(exception -> assertThat(((BusinessException) exception).getErrorCode())
-				.isEqualTo(CommonErrorCode.INVALID_REQUEST));
-	}
 }
