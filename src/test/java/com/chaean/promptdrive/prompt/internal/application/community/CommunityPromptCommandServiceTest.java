@@ -44,8 +44,7 @@ class CommunityPromptCommandServiceTest {
 
 	@BeforeEach
 	void setUp() {
-		service = new CommunityPromptCommandService(promptRepository, promptCategoryRepository,
-			new PromptResponseMapper());
+		service = new CommunityPromptCommandService(promptRepository, promptCategoryRepository, new PromptResponseMapper());
 	}
 
 	@Test

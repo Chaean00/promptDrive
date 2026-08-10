@@ -6,7 +6,9 @@ import com.chaean.promptdrive.common.config.SeoProperties;
 import com.chaean.promptdrive.prompt.internal.domain.PromptCategoryType;
 import com.chaean.promptdrive.prompt.internal.persistence.PromptRepository;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.HtmlUtils;
 
 import lombok.RequiredArgsConstructor;
 
@@ -19,7 +21,12 @@ public class PromptSitemapService {
 	private final PromptRepository promptRepository;
 	private final SeoProperties seoProperties;
 
+	@Cacheable(cacheNames = "sitemap")
 	public String createSitemapXml() {
+		return generateSitemapXml();
+	}
+
+	private String generateSitemapXml() {
 		String siteUrl = normalizedSiteUrl();
 		StringBuilder xml = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
 		appendUrl(xml, siteUrl, null);
@@ -45,7 +52,7 @@ public class PromptSitemapService {
 	}
 
 	private void appendUrl(StringBuilder xml, String location, String lastModified) {
-		xml.append("<url><loc>").append(location).append("</loc>");
+		xml.append("<url><loc>").append(HtmlUtils.htmlEscape(location)).append("</loc>");
 		if (lastModified != null) {
 			xml.append("<lastmod>").append(lastModified).append("</lastmod>");
 		}

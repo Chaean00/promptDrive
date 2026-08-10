@@ -43,8 +43,7 @@ class CuratedPromptCommandServiceTest {
 
 	@BeforeEach
 	void setUp() {
-		service = new CuratedPromptCommandService(promptRepository, promptCategoryRepository,
-			new PromptResponseMapper());
+		service = new CuratedPromptCommandService(promptRepository, promptCategoryRepository, new PromptResponseMapper());
 	}
 
 	@Test
