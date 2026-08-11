@@ -3,6 +3,7 @@ package com.chaean.promptdrive.prompt.internal.web.community;
 import com.chaean.promptdrive.common.web.response.ApiResponse;
 import com.chaean.promptdrive.common.web.response.SliceResponse;
 import com.chaean.promptdrive.prompt.internal.application.community.CommunityPromptCommandService;
+import com.chaean.promptdrive.prompt.internal.application.community.CommunityPromptQueryService;
 import com.chaean.promptdrive.prompt.internal.dto.CreateCommunityPromptRequest;
 import com.chaean.promptdrive.prompt.internal.dto.PromptDetailResponse;
 import com.chaean.promptdrive.prompt.internal.dto.PromptSummaryResponse;
@@ -31,16 +32,17 @@ import lombok.RequiredArgsConstructor;
 public class CommunityPromptController {
 
 	private final CommunityPromptCommandService communityPromptCommandService;
+	private final CommunityPromptQueryService communityPromptQueryService;
 
 	@GetMapping
 	public SliceResponse<PromptSummaryResponse> listOwnedCommunityPrompts(Authentication authentication,
 		@RequestParam(defaultValue = "0") Integer page, @RequestParam(defaultValue = "20") Integer size) {
-		return communityPromptCommandService.getOwnedCommunityPromptPage(resolveOwnerMemberId(authentication), page, size);
+		return communityPromptQueryService.getOwnedCommunityPromptPage(resolveOwnerMemberId(authentication), page, size);
 	}
 
 	@GetMapping("/{promptId}")
 	public ApiResponse<PromptDetailResponse> getOwnedCommunityPrompt(Authentication authentication, @PathVariable Long promptId) {
-		return ApiResponse.of(communityPromptCommandService.getOwnedCommunityPrompt(resolveOwnerMemberId(authentication), promptId));
+		return ApiResponse.of(communityPromptQueryService.getOwnedCommunityPrompt(resolveOwnerMemberId(authentication), promptId));
 	}
 
 	@PostMapping

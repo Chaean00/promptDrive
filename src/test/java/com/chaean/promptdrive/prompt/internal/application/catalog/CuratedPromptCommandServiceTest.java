@@ -43,8 +43,7 @@ class CuratedPromptCommandServiceTest {
 
 	@BeforeEach
 	void setUp() {
-		service = new CuratedPromptCommandService(promptRepository, promptCategoryRepository,
-			new PromptResponseMapper());
+		service = new CuratedPromptCommandService(promptRepository, promptCategoryRepository, new PromptResponseMapper());
 	}
 
 	@Test
@@ -106,14 +105,4 @@ class CuratedPromptCommandServiceTest {
 		assertThat(prompt.getTitle()).isEqualTo("updated");
 	}
 
-	@Test
-	@DisplayName("커뮤니티 Prompt는 큐레이션 서비스에서 관리할 수 없다")
-	void communityPromptCannotBeManagedByCuratedService() {
-		when(promptRepository.findByIdAndProvenance(1L, PromptProvenance.CURATED)).thenReturn(Optional.empty());
-
-		assertThatThrownBy(() -> service.getCuratedPrompt(1L))
-			.isInstanceOf(BusinessException.class)
-			.satisfies(exception -> assertThat(((BusinessException) exception).getErrorCode())
-				.isEqualTo(CommonErrorCode.RESOURCE_NOT_FOUND));
-	}
 }

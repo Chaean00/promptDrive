@@ -5,8 +5,11 @@ import java.time.format.DateTimeFormatter;
 import com.chaean.promptdrive.common.config.SeoProperties;
 import com.chaean.promptdrive.prompt.internal.domain.PromptCategoryType;
 import com.chaean.promptdrive.prompt.internal.persistence.PromptRepository;
+import com.chaean.promptdrive.prompt.internal.persistence.PromptCollectionRepository;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.HtmlUtils;
 
 import lombok.RequiredArgsConstructor;
 
@@ -17,9 +20,15 @@ public class PromptSitemapService {
 	private static final DateTimeFormatter LAST_MODIFIED_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
 
 	private final PromptRepository promptRepository;
+	private final PromptCollectionRepository collectionRepository;
 	private final SeoProperties seoProperties;
 
+	@Cacheable(cacheNames = "sitemap", sync = true)
 	public String createSitemapXml() {
+		return generateSitemapXml();
+	}
+
+	private String generateSitemapXml() {
 		String siteUrl = normalizedSiteUrl();
 		StringBuilder xml = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
 		appendUrl(xml, siteUrl, null);
@@ -28,6 +37,8 @@ public class PromptSitemapService {
 		}
 		promptRepository.findPublicPromptSitemapEntries().forEach(prompt ->
 			appendUrl(xml, siteUrl + "/prompts/" + prompt.getId(), prompt.getUpdatedAt().format(LAST_MODIFIED_FORMATTER)));
+		collectionRepository.findAll().forEach(collection ->
+			appendUrl(xml, siteUrl + "/prompt-collections/" + collection.getSlug(), collection.getUpdatedAt().format(LAST_MODIFIED_FORMATTER)));
 		xml.append("</urlset>");
 		return xml.toString();
 	}
@@ -45,7 +56,7 @@ public class PromptSitemapService {
 	}
 
 	private void appendUrl(StringBuilder xml, String location, String lastModified) {
-		xml.append("<url><loc>").append(location).append("</loc>");
+		xml.append("<url><loc>").append(HtmlUtils.htmlEscape(location)).append("</loc>");
 		if (lastModified != null) {
 			xml.append("<lastmod>").append(lastModified).append("</lastmod>");
 		}
