@@ -39,6 +39,14 @@
 - 외부 시스템(OpenAI, Redis, Google OAuth2)처럼 교체·실패 격리가 필요한 경계에만 Port/Adapter를 만든다. 모듈 내부 CRUD나 Spring Data Repository에 불필요한 인터페이스 계층을 만들지 않는다.
 - `common`에는 기술 공통 요소만 둔다. 도메인 Entity, 도메인 Service, 비즈니스 규칙을 넣지 않는다.
 
+## Spring Proxy와 캐시
+
+- Spring Proxy 기반 어노테이션(`@Transactional`, `@Cacheable`, `@Async` 등)은 외부 호출이 Bean proxy를 통과할 때만 적용된다. 동일 클래스 내부 호출에 어노테이션 동작을 의존하지 말고, 필요한 경우 별도 Bean으로 분리하거나 공통 구현을 private helper로 둔다.
+- 외부에서 호출할 수 있는 public Service 메서드와 오버로드는 각각 필요한 트랜잭션·캐시 계약을 명시한다. 한 public 메서드의 어노테이션이 다른 public 오버로드의 내부 호출에 적용될 것이라고 가정하지 않는다.
+- 캐시를 추가할 때는 key, TTL, 허용 가능한 최대 stale 시간, 최대 크기, 무효화 기준, 다중 인스턴스 일관성을 PR에 기록한다. 로컬 캐시는 인스턴스별로 독립적이며 전역 일관성을 제공하지 않는다.
+- 고비용 단일-key 캐시는 cold start와 TTL 만료 시 동시 miss를 검토한다. 동일 JVM의 중복 계산이 문제가 되면 cache provider 지원 여부를 확인한 뒤 single-flight 동기화와 동시성 회귀 테스트를 추가한다.
+- sitemap은 URL 50,000개 또는 비압축 50MB를 넘기기 전에 sitemap index와 분할 sitemap으로 전환한다.
+
 ## Git 작업 규칙
 
 - 모든 작업은 GitHub Issue와 연결한다.
