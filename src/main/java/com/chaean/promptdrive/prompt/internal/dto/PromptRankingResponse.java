@@ -16,6 +16,7 @@ public class PromptRankingResponse {
 
 	private final Long id;
 	private final String title;
+	private final String preview;
 	private final EnumDisplayResponse provenance;
 	private final List<EnumDisplayResponse> categories;
 	private final LocalDateTime createdAt;
@@ -23,7 +24,7 @@ public class PromptRankingResponse {
 
 	public static PromptRankingResponse from(Prompt prompt, List<PromptCategory> categories, Long likeCount) {
 		return new PromptRankingResponse(
-			prompt.getId(), prompt.getTitle(), EnumDisplayResponse.from(prompt.getProvenance()),
+			prompt.getId(), prompt.getTitle(), PromptSummaryResponse.previewOf(prompt.getContent()), EnumDisplayResponse.from(prompt.getProvenance()),
 			categories.stream().map(PromptCategory::getCategory).map(EnumDisplayResponse::from).toList(),
 			prompt.getCreatedAt(), likeCount
 		);

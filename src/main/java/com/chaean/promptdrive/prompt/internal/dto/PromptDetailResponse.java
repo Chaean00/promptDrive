@@ -16,6 +16,7 @@ public class PromptDetailResponse {
 
 	private final Long id;
 	private final String title;
+	private final String preview;
 	private final String content;
 	private final EnumDisplayResponse provenance;
 	private final List<EnumDisplayResponse> categories;
@@ -25,7 +26,7 @@ public class PromptDetailResponse {
 
 	public static PromptDetailResponse from(Prompt prompt, List<PromptCategory> categories) {
 		return new PromptDetailResponse(
-			prompt.getId(), prompt.getTitle(), prompt.getContent(), EnumDisplayResponse.from(prompt.getProvenance()),
+			prompt.getId(), prompt.getTitle(), PromptSummaryResponse.previewOf(prompt.getContent()), prompt.getContent(), EnumDisplayResponse.from(prompt.getProvenance()),
 			categories.stream().map(PromptCategory::getCategory).map(EnumDisplayResponse::from).toList(),
 			prompt.getCreatedAt(), prompt.getUpdatedAt(), prompt.getCopyCount()
 		);
