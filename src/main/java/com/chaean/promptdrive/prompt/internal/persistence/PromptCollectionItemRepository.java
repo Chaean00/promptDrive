@@ -17,4 +17,12 @@ public interface PromptCollectionItemRepository extends JpaRepository<PromptColl
 		ORDER BY i.displayOrder ASC, i.id ASC
 		""")
 	List<PromptCollectionItem> findPublicItemsByCollectionId(@Param("collectionId") Long collectionId);
+
+	@Query("""
+		SELECT i.collection.id AS collectionId, COUNT(i) AS promptCount
+		FROM PromptCollectionItem i
+		WHERE i.prompt.visibility = com.chaean.promptdrive.prompt.internal.domain.PromptVisibility.PUBLIC
+		GROUP BY i.collection.id
+		""")
+	List<PromptCollectionPromptCount> countPublicPromptsByCollection();
 }

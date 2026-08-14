@@ -15,6 +15,10 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,6 +54,7 @@ import org.hibernate.SessionFactory;
 
 import com.chaean.promptdrive.prompt.internal.application.catalog.PublicPromptQueryService;
 import com.chaean.promptdrive.prompt.internal.application.catalog.CuratedPromptCommandService;
+import com.chaean.promptdrive.prompt.internal.application.bookmark.PromptBookmarkCommandService;
 import com.chaean.promptdrive.prompt.internal.application.collection.PublicPromptCollectionQueryService;
 import com.chaean.promptdrive.prompt.internal.application.collection.PromptCollectionCommandService;
 import com.chaean.promptdrive.prompt.internal.dto.CreateCuratedPromptRequest;
@@ -102,6 +107,9 @@ class PromptCatalogMySqlIntegrationTest {
 	private CuratedPromptCommandService curatedPromptCommandService;
 
 	@Autowired
+	private PromptBookmarkCommandService promptBookmarkCommandService;
+
+	@Autowired
 	private PromptCollectionCommandService promptCollectionCommandService;
 
 	@Autowired
@@ -132,16 +140,20 @@ class PromptCatalogMySqlIntegrationTest {
 	}
 
 	private String tokenFor(String role) {
+		return tokenFor(role, "1");
+	}
+
+	private String tokenFor(String role, String memberId) {
 		Instant now = Instant.now();
 		return jwtEncoder.encode(JwtEncoderParameters.from(
 			JwsHeader.with(MacAlgorithm.HS256).type("JWT").build(),
 			JwtClaimsSet.builder()
 				.issuer("promptdrive")
 				.audience(List.of("promptdrive-api"))
-				.subject("1")
+				.subject(memberId)
 				.issuedAt(now)
 				.expiresAt(now.plus(5, ChronoUnit.MINUTES))
-				.claim("member_id", "1")
+				.claim("member_id", memberId)
 				.claim("roles", List.of(role))
 				.claim("token_type", "access")
 			.build())).getTokenValue();
@@ -172,7 +184,8 @@ class PromptCatalogMySqlIntegrationTest {
 
 		mockMvc.perform(get("/api/prompts").param("category", "DEVELOPMENT"))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.content[0].title").value("integration-title"));
+			.andExpect(jsonPath("$.content[0].title").value("integration-title"))
+			.andExpect(jsonPath("$.content[0].preview").value("integration-content"));
 		mockMvc.perform(get("/api/prompts").param("keyword", "integration-content"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.content[0].title").value("integration-title"));
@@ -266,6 +279,187 @@ class PromptCatalogMySqlIntegrationTest {
 	}
 
 	@Test
+	@DisplayName("공개 Prompt 목록은 공백을 정리한 제한 길이 미리보기를 제공한다")
+	void providesNormalizedPromptPreviews() throws Exception {
+		String content = "  첫 줄\n\n둘째 줄\t셋째 줄  ";
+		curatedPromptCommandService.createCuratedPrompt(new CreateCuratedPromptRequest(
+			"preview-title", content, List.of(PromptCategoryType.DEVELOPMENT), PromptVisibility.PUBLIC, null, null));
+
+		mockMvc.perform(get("/api/prompts").param("keyword", "preview-title"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.content[0].preview").value("첫 줄 둘째 줄 셋째 줄"));
+		curatedPromptCommandService.createCuratedPrompt(new CreateCuratedPromptRequest(
+			"preview-limited", "  " + "가".repeat(170) + "\n", List.of(PromptCategoryType.DEVELOPMENT), PromptVisibility.PUBLIC, null, null));
+		mockMvc.perform(get("/api/prompts").param("keyword", "preview-limited"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.content[0].preview").value("가".repeat(160)));
+		String emojiBoundaryContent = "가".repeat(159) + "😀" + "나";
+		curatedPromptCommandService.createCuratedPrompt(new CreateCuratedPromptRequest(
+			"preview-emoji-boundary", emojiBoundaryContent, List.of(PromptCategoryType.DEVELOPMENT), PromptVisibility.PUBLIC, null, null));
+		mockMvc.perform(get("/api/prompts").param("keyword", "preview-emoji-boundary"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.content[0].preview").value("가".repeat(159) + "😀"));
+	}
+
+	@Test
+	@DisplayName("회원은 공개 Prompt를 저장·해제하고 최신 저장 순으로 조회한다")
+	void savesAndListsPublicPromptBookmarks() throws Exception {
+		long firstPromptId = curatedPromptCommandService.createCuratedPrompt(new CreateCuratedPromptRequest(
+			"bookmark-first", "first content", List.of(PromptCategoryType.DEVELOPMENT), PromptVisibility.PUBLIC, null, null)).getId();
+		long secondPromptId = curatedPromptCommandService.createCuratedPrompt(new CreateCuratedPromptRequest(
+			"bookmark-second", "second content", List.of(PromptCategoryType.TESTING), PromptVisibility.PUBLIC, null, null)).getId();
+
+		mockMvc.perform(post("/api/prompts/{promptId}/bookmarks", firstPromptId).with(csrf()))
+			.andExpect(status().isUnauthorized());
+		mockMvc.perform(post("/api/prompts/{promptId}/bookmarks", firstPromptId)
+				.header("Authorization", "Bearer " + memberToken)
+				.with(csrf()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.promptId").value(firstPromptId))
+			.andExpect(jsonPath("$.data.bookmarked").value(true));
+		mockMvc.perform(post("/api/prompts/{promptId}/bookmarks", secondPromptId)
+				.header("Authorization", "Bearer " + memberToken)
+				.with(csrf()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.bookmarked").value(true));
+		mockMvc.perform(post("/api/prompts/{promptId}/bookmarks", secondPromptId)
+				.header("Authorization", "Bearer " + memberToken)
+				.with(csrf()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.bookmarked").value(true));
+
+		mockMvc.perform(get("/api/my/bookmarked-prompts")
+				.header("Authorization", "Bearer " + memberToken))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.content.length()").value(2))
+			.andExpect(jsonPath("$.content[0].id").value(secondPromptId))
+			.andExpect(jsonPath("$.content[0].preview").value("second content"));
+		mockMvc.perform(post("/api/my/bookmark-statuses")
+				.header("Authorization", "Bearer " + memberToken)
+				.with(csrf())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"promptIds\":[" + firstPromptId + "," + secondPromptId + "]}"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.length()").value(2))
+			.andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsInAnyOrder((int)firstPromptId, (int)secondPromptId)));
+
+		mockMvc.perform(delete("/api/prompts/{promptId}/bookmarks", secondPromptId)
+				.header("Authorization", "Bearer " + memberToken)
+				.with(csrf()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.bookmarked").value(false));
+		mockMvc.perform(get("/api/my/bookmarked-prompts")
+				.header("Authorization", "Bearer " + memberToken))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.content.length()").value(1))
+			.andExpect(jsonPath("$.content[0].id").value(firstPromptId));
+		mockMvc.perform(post("/api/prompts/{promptId}/bookmarks", secondPromptId)
+				.header("Authorization", "Bearer " + memberToken)
+				.with(csrf()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.bookmarked").value(true));
+		mockMvc.perform(get("/api/my/bookmarked-prompts")
+				.header("Authorization", "Bearer " + memberToken))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.content[0].id").value(secondPromptId));
+
+		curatedPromptCommandService.changeCuratedPromptVisibility(firstPromptId, PromptVisibility.HIDDEN);
+		mockMvc.perform(post("/api/my/bookmark-statuses")
+				.header("Authorization", "Bearer " + memberToken)
+				.with(csrf())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"promptIds\":[" + firstPromptId + "," + secondPromptId + "]}"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.length()").value(1))
+			.andExpect(jsonPath("$.data[0]").value(secondPromptId));
+		mockMvc.perform(get("/api/my/bookmarked-prompts")
+				.header("Authorization", "Bearer " + memberToken))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.content.length()").value(1))
+			.andExpect(jsonPath("$.content[0].id").value(secondPromptId));
+		mockMvc.perform(post("/api/prompts/{promptId}/bookmarks", firstPromptId)
+				.header("Authorization", "Bearer " + memberToken)
+				.with(csrf()))
+			.andExpect(status().isNotFound());
+		mockMvc.perform(delete("/api/prompts/{promptId}/bookmarks", firstPromptId)
+				.header("Authorization", "Bearer " + memberToken)
+				.with(csrf()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.bookmarked").value(false));
+		curatedPromptCommandService.changeCuratedPromptVisibility(firstPromptId, PromptVisibility.PUBLIC);
+		mockMvc.perform(get("/api/my/bookmarked-prompts")
+				.header("Authorization", "Bearer " + memberToken))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.content.length()").value(1))
+			.andExpect(jsonPath("$.content[0].id").value(secondPromptId));
+		mockMvc.perform(post("/api/my/bookmark-statuses")
+				.header("Authorization", "Bearer " + memberToken)
+				.with(csrf())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"promptIds\":[" + firstPromptId + "," + secondPromptId + "]}"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.length()").value(1))
+			.andExpect(jsonPath("$.data[0]").value(secondPromptId));
+	}
+
+	@Test
+	@DisplayName("회원은 저장한 Prompt를 다음 페이지까지 조회한다")
+	void pagesThroughMoreThanTwentyBookmarks() throws Exception {
+		String isolatedMemberToken = tokenFor("MEMBER", "2");
+		List<Long> promptIds = java.util.stream.IntStream.range(0, 21)
+			.mapToObj(index -> curatedPromptCommandService.createCuratedPrompt(new CreateCuratedPromptRequest(
+				"bookmark-page-" + UUID.randomUUID(), "content-" + index, List.of(PromptCategoryType.DEVELOPMENT), PromptVisibility.PUBLIC, null, null)).getId())
+			.toList();
+		for (Long promptId : promptIds) {
+			mockMvc.perform(post("/api/prompts/{promptId}/bookmarks", promptId)
+					.header("Authorization", "Bearer " + isolatedMemberToken)
+					.with(csrf()))
+				.andExpect(status().isOk());
+		}
+
+		mockMvc.perform(get("/api/my/bookmarked-prompts").param("page", "0").param("size", "20")
+				.header("Authorization", "Bearer " + isolatedMemberToken))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.content.length()").value(20))
+			.andExpect(jsonPath("$.hasNext").value(true));
+		mockMvc.perform(get("/api/my/bookmarked-prompts").param("page", "1").param("size", "20")
+				.header("Authorization", "Bearer " + isolatedMemberToken))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.content.length()").value(1))
+			.andExpect(jsonPath("$.hasNext").value(false));
+	}
+
+	@Test
+	@DisplayName("동시에 같은 Prompt를 저장해도 활성 북마크는 하나만 남는다")
+	void keepsOneActiveBookmarkDuringConcurrentSaves() throws Exception {
+		long promptId = curatedPromptCommandService.createCuratedPrompt(new CreateCuratedPromptRequest(
+			"bookmark-concurrent", "content", List.of(PromptCategoryType.DEVELOPMENT), PromptVisibility.PUBLIC, null, null)).getId();
+		ExecutorService executor = Executors.newFixedThreadPool(8);
+		CountDownLatch ready = new CountDownLatch(8);
+		CountDownLatch start = new CountDownLatch(1);
+		try {
+			List<Future<Object>> saves = java.util.stream.IntStream.range(0, 8)
+				.mapToObj(index -> executor.submit(() -> {
+					ready.countDown();
+					start.await();
+					promptBookmarkCommandService.registerPromptBookmark(3L, promptId);
+					return null;
+				}))
+				.toList();
+			assertThat(ready.await(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+			start.countDown();
+			for (Future<?> save : saves) {
+				save.get();
+			}
+			Integer activeBookmarks = jdbcTemplate.queryForObject(
+				"select count(*) from prompt_bookmark where prompt_id = ? and member_id = ? and deleted_at is null", Integer.class, promptId, 3L);
+			assertThat(activeBookmarks).isEqualTo(1);
+		} finally {
+			executor.shutdownNow();
+		}
+	}
+
+	@Test
 	@DisplayName("공개 Prompt 응답에는 내부 출처 정보를 노출하지 않는다")
 	void doesNotExposeSourceMetadataFromPublicPromptResponse() throws Exception {
 		MvcResult created = mockMvc.perform(post("/api/admin/prompts")
@@ -342,7 +536,7 @@ class PromptCatalogMySqlIntegrationTest {
 
 		SessionFactory sessionFactory = entityManagerFactory.unwrap(SessionFactory.class);
 		sessionFactory.getStatistics().clear();
-		publicPromptQueryService.getPublicPromptPage(null, null, 0, 20);
+		publicPromptQueryService.getPublicPromptPage(null, null, 0, 100);
 
 		org.assertj.core.api.Assertions.assertThat(sessionFactory.getStatistics().getPrepareStatementCount()).isEqualTo(2);
 	}
@@ -362,6 +556,33 @@ class PromptCatalogMySqlIntegrationTest {
 
 		curatedPromptCommandService.changeCuratedPromptVisibility(publicPromptId, PromptVisibility.HIDDEN);
 		assertThat(publicPromptCollectionQueryService.getBySlug("collection-mvp").getPrompts()).isEmpty();
+	}
+
+	@Test
+	@DisplayName("공개 Collection 목록은 제목·설명과 공개 Prompt 수를 제공한다")
+	void listsCollectionsWithVisiblePromptCounts() throws Exception {
+		long visiblePromptId = curatedPromptCommandService.createCuratedPrompt(new CreateCuratedPromptRequest(
+			"collection-list-visible", "content", List.of(PromptCategoryType.DEVELOPMENT),
+			PromptVisibility.PUBLIC, null, null)).getId();
+		long hiddenPromptId = curatedPromptCommandService.createCuratedPrompt(new CreateCuratedPromptRequest(
+			"collection-list-hidden", "content", List.of(PromptCategoryType.TESTING),
+			PromptVisibility.PUBLIC, null, null)).getId();
+		promptCollectionCommandService.create(new CreatePromptCollectionRequest(
+			"collection-visible", "Visible collection", "Visible description", List.of(visiblePromptId)));
+		promptCollectionCommandService.create(new CreatePromptCollectionRequest(
+			"collection-hidden", "Hidden collection", "Hidden description", List.of(hiddenPromptId)));
+		curatedPromptCommandService.changeCuratedPromptVisibility(hiddenPromptId, PromptVisibility.HIDDEN);
+
+		mockMvc.perform(get("/api/prompt-collections"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data[?(@.slug == 'collection-visible')].title")
+				.value(org.hamcrest.Matchers.contains("Visible collection")))
+			.andExpect(jsonPath("$.data[?(@.slug == 'collection-visible')].description")
+				.value(org.hamcrest.Matchers.contains("Visible description")))
+			.andExpect(jsonPath("$.data[?(@.slug == 'collection-visible')].promptCount")
+				.value(org.hamcrest.Matchers.contains(1)))
+			.andExpect(jsonPath("$.data[?(@.slug == 'collection-hidden')].promptCount")
+				.value(org.hamcrest.Matchers.contains(0)));
 	}
 
 	@Test

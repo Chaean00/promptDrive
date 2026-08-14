@@ -18,6 +18,7 @@ import com.chaean.promptdrive.prompt.internal.dto.UpdateCuratedPromptRequest;
 import com.chaean.promptdrive.prompt.internal.persistence.Prompt;
 import com.chaean.promptdrive.prompt.internal.persistence.PromptCategory;
 import com.chaean.promptdrive.prompt.internal.persistence.PromptCategoryRepository;
+import com.chaean.promptdrive.prompt.internal.persistence.PromptBookmarkRepository;
 import com.chaean.promptdrive.prompt.internal.persistence.PromptRepository;
 
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ public class CuratedPromptCommandService {
 
 	private final PromptRepository promptRepository;
 	private final PromptCategoryRepository promptCategoryRepository;
+	private final PromptBookmarkRepository promptBookmarkRepository;
 	private final PromptResponseMapper responseMapper;
 
 	@Transactional
@@ -55,7 +57,11 @@ public class CuratedPromptCommandService {
 	@Transactional
 	public CuratedPromptResponse changeCuratedPromptVisibility(Long promptId, PromptVisibility visibility) {
 		Prompt prompt = findCuratedPromptForUpdate(promptId);
+		boolean hidesPublicPrompt = prompt.getVisibility() == PromptVisibility.PUBLIC && visibility == PromptVisibility.HIDDEN;
 		prompt.changeCuratedPromptVisibility(visibility);
+		if (hidesPublicPrompt) {
+			promptBookmarkRepository.softDeleteActiveByPromptId(promptId);
+		}
 		return responseMapper.toCuratedPromptResponse(prompt, promptCategoryRepository.findAllByPromptId(promptId));
 	}
 
@@ -64,6 +70,7 @@ public class CuratedPromptCommandService {
 		Prompt prompt = findCuratedPromptForUpdate(promptId);
 		promptCategoryRepository.findAllByPromptId(promptId).forEach(PromptCategory::softDelete);
 		prompt.softDeleteCuratedPrompt();
+		promptBookmarkRepository.softDeleteActiveByPromptId(promptId);
 	}
 
 	private Prompt findCuratedPromptForUpdate(Long promptId) {
