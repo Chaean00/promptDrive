@@ -97,6 +97,7 @@ class PromptRankingQueryServiceTest {
 		Prompt prompt = org.mockito.Mockito.mock(Prompt.class);
 		when(prompt.getId()).thenReturn(promptId);
 		when(prompt.getTitle()).thenReturn("title-" + promptId);
+		when(prompt.getContent()).thenReturn("content-" + promptId);
 		when(prompt.getProvenance()).thenReturn(PromptProvenance.CURATED);
 		PromptRankingProjection ranking = org.mockito.Mockito.mock(PromptRankingProjection.class);
 		when(ranking.getPrompt()).thenReturn(prompt);

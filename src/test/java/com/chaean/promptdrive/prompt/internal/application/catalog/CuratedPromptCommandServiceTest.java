@@ -20,6 +20,7 @@ import com.chaean.promptdrive.prompt.internal.dto.UpdateCuratedPromptRequest;
 import com.chaean.promptdrive.prompt.internal.persistence.Prompt;
 import com.chaean.promptdrive.prompt.internal.persistence.PromptCategory;
 import com.chaean.promptdrive.prompt.internal.persistence.PromptCategoryRepository;
+import com.chaean.promptdrive.prompt.internal.persistence.PromptBookmarkRepository;
 import com.chaean.promptdrive.prompt.internal.persistence.PromptRepository;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -39,11 +40,14 @@ class CuratedPromptCommandServiceTest {
 	@Mock
 	private PromptCategoryRepository promptCategoryRepository;
 
+	@Mock
+	private PromptBookmarkRepository promptBookmarkRepository;
+
 	private CuratedPromptCommandService service;
 
 	@BeforeEach
 	void setUp() {
-		service = new CuratedPromptCommandService(promptRepository, promptCategoryRepository, new PromptResponseMapper());
+		service = new CuratedPromptCommandService(promptRepository, promptCategoryRepository, promptBookmarkRepository, new PromptResponseMapper());
 	}
 
 	@Test
@@ -85,6 +89,20 @@ class CuratedPromptCommandServiceTest {
 
 		assertThat(prompt.getDeletedAt()).isNotNull();
 		assertThat(category.getDeletedAt()).isNotNull();
+		verify(promptBookmarkRepository).softDeleteActiveByPromptId(1L);
+	}
+
+	@Test
+	@DisplayName("공개 큐레이션 Prompt를 비공개로 전환하면 활성 북마크를 해제한다")
+	void clearsBookmarksWhenPublicCuratedPromptBecomesHidden() {
+		Prompt prompt = Prompt.createCuratedPrompt("title", "content", PromptVisibility.PUBLIC, null, null);
+		when(promptRepository.findByIdAndProvenanceForUpdate(1L, PromptProvenance.CURATED)).thenReturn(Optional.of(prompt));
+		when(promptCategoryRepository.findAllByPromptId(1L)).thenReturn(List.of());
+
+		service.changeCuratedPromptVisibility(1L, PromptVisibility.HIDDEN);
+
+		assertThat(prompt.getVisibility()).isEqualTo(PromptVisibility.HIDDEN);
+		verify(promptBookmarkRepository).softDeleteActiveByPromptId(1L);
 	}
 
 	@Test

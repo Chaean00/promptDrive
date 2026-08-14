@@ -54,6 +54,8 @@ public interface PromptRepository extends JpaRepository<Prompt, Long> {
 
 	Optional<Prompt> findByIdAndVisibility(Long id, PromptVisibility visibility);
 
+	boolean existsByIdAndVisibility(Long id, PromptVisibility visibility);
+
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("SELECT p FROM Prompt p WHERE p.id = :id AND p.visibility = :visibility")
 	Optional<Prompt> findByIdAndVisibilityForUpdate(@Param("id") Long id, @Param("visibility") PromptVisibility visibility);
